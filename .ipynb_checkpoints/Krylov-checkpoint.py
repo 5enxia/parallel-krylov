@@ -11,8 +11,8 @@ import time
 import datetime
 import json
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # In[ ]:
@@ -27,7 +27,8 @@ class Methods():
     def multiplot(dataArray,figsize=(4,3),markersize=3):
         upper_limit = 0
         
-        plt.figure(figsize=figsize)
+        Methods._set_plot(figsize)
+        
         for d in dataArray:
             upper_limit = max(upper_limit, d.solution_updates[d.iter - 1])
         for d in dataArray:
@@ -35,11 +36,10 @@ class Methods():
                      lw=1, label=d.name, markersize=markersize)
 
         plt.xlim(0,upper_limit+1)
-        Methods._set_plot()
         plt.show()
         
     @staticmethod
-    def _set_plot():
+    def _set_plot(figsize):
         plt.rcParams['font.family'] = 'Times New Roman'
         plt.rcParams["font.size"] = 32
         plt.yscale('log')
@@ -71,10 +71,9 @@ class Methods():
             self.iter = data['results']['iter']
 
     def plot(self,figsize=(4,3)):
-        plt.figure(figsize=figsize)
+        Methods._set_plot(figsize)
         plt.plot(self.solution_updates[:self.iter],self.residual[:self.iter], '-o', lw=Methods.lw, label=self.name, 
                  markersize=Methods.makersize)
-        Methods._set_plot()
         plt.show()
        
     def output(self,fn):
@@ -96,29 +95,13 @@ class Methods():
             f.close()
             
     # ===============================Krylov Methods===============================
-    def _setup(self,name,k=None):
-        print('--------------------')
-        self.name = name
+    def cg(self,T=np.float64):
+        self.name = 'CG'
         print(f'name:{self.name}')
-        self.k = k
+    
+        self.k = None
         self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         self.start = time.time()
-    
-    def _converged(self,iter_index,residual_index,k=None):
-        print('Status: converged')
-        print(f'iter: {iter_index} times')
-        print(f'final_k: {k}')
-        print(f'residual: {self.residual[residual_index]}')
-        print('--------------------')
-        
-    
-    def _diverged(self):
-        print('Status: Diverged')
-        print('--------------------')
-        self.converged = False
-        
-    def cg(self,T=np.float64):
-        self._setup(name='CG')
         
         r = self.b - self.A.dot(self.x)
         self.residual[0] = np.linalg.norm(r) / self.b_norm
@@ -132,7 +115,9 @@ class Methods():
 
             self.residual[i+1] = np.linalg.norm(r) / self.b_norm
             if self.residual[i+1] < Methods.epsilon:
-                self._converged(i,i+1)
+                print('Converged')
+                print(f'itert: {i} times')
+                print('residual', self.residual[i+1])
                 break
 
             beta = r.dot(r) / old_r.dot(old_r)
@@ -141,14 +126,20 @@ class Methods():
             self.solution_updates[i] = i
         
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
     
         self.iter = i
         self.time = time.time() - self.start
         print(f'time: {self.time}')
         
     def pcg(self,M,T=np.float64):
-        self._setup(name='Preconditioned CG')
+        self.name = 'Preconditioned CG'
+        print(f'name:{self.name}')
+    
+        self.k = None
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         r = self.b - self.A.dot(self.x)
         self.residual[0] = np.linalg.norm(r) / self.b_norm
@@ -165,7 +156,9 @@ class Methods():
 
             self.residual[i+1] = np.linalg.norm(r) / self.b_norm
             if self.residual[i+1] < Methods.epsilon:
-                self._converged(i,i+1)
+                print('Converged')
+                print(f'itert: {i} times')
+                print('residual', self.residual[i+1])
                 break
 
             beta = r.dot(z) / old_r.dot(old_z)
@@ -174,14 +167,20 @@ class Methods():
             self.solution_updates[i] = i
         
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
     
         self.iter = i
         self.time = time.time() - self.start
         print(f'time: {self.time}')
         
     def mrr(self,T=np.float64):
-        self._setup(name='MrR')
+        self.name = 'MrR'
+        print(f'name:{self.name}')
+     
+        self.k = None
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         r = np.zeros(self.max_iter, T)
         r = self.b - self.A.dot(self.x)
@@ -196,10 +195,13 @@ class Methods():
         self.x -= z
 
         for i in range(1, self.max_iter):
-            
+
             self.residual[i] = np.linalg.norm(r) / self.b_norm
+
             if self.residual[i] < Methods.epsilon:
-                self._converged(i,i)
+                print('Converged')
+                print(f'iter: {i} times')
+                print('residual', self.residual[i])
                 break
 
             Ar = self.A.dot(r)
@@ -217,14 +219,20 @@ class Methods():
             self.solution_updates[i] = i
         
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
         
         self.iter = i
         self.time = time.time() - self.start
         print(f'time: {self.time}')
     
     def kskipcg(self,k,T=np.float64):
-        self._setup('k-skip CG',k=k)
+        self.name = 'k-skip CG'
+        print(f'name:{self.name}')
+       
+        self.k = k
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         Ar = np.zeros((k+2, self.N),T)
         Ar[0] = self.b - self.A.dot(self.x)
@@ -236,10 +244,13 @@ class Methods():
         c = np.zeros(2*k+2, T)
 
         for i in range(0, self.max_iter):
-            
+
             self.residual[i] = np.linalg.norm(Ar[0]) / self.b_norm
+
             if self.residual[i] < Methods.epsilon:
-                self._converged(i,i)
+                print('converged')
+                print(f'iter: {i}')
+                print(f'residual: {self.residual[i]}')
                 break
 
             for j in range(1, k+1):
@@ -289,14 +300,20 @@ class Methods():
             self.solution_updates[i+1] = self.solution_updates[i] + k + 1
 
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
     
         self.iter = i + 1
         self.time = time.time() - self.start
         print(f'time: {self.time}')
       
     def kskipmrr(self,k,T=np.float64):
-        self._setup('k-skip MrR',k=k)
+        self.name = 'k-skip MrR'
+        print(f'name:{self.name}')
+    
+        self.k = k
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         Ar = np.empty((k+3, self.N), T)
         Ar[0] = self.b - self.A.dot(self.x)
@@ -325,8 +342,11 @@ class Methods():
         for i in range(1, self.max_iter):
 
             self.residual[i] = np.linalg.norm(Ar[0]) / self.b_norm
+
             if self.residual[i] < Methods.epsilon:
-                self._converged(i,i)
+                print('converged')
+                print(f'iter: {i}')
+                print(f'residual: {self.residual[i]}')
                 break
 
             for j in range(1, k+2):
@@ -385,14 +405,20 @@ class Methods():
             self.solution_updates[i + 1] = self.solution_updates[i] + k + 1
 
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
             
         self.iter = i + 1
         self.time = time.time() - self.start
         print(f'time: {self.time}')
 
     def adaptivekskipmrr(self,k,T=np.float64):
-        self._setup('adaptive k-skip MrR',k=k)
+        self.name = 'adaptive k-skip MrR'
+        print(f'name:{self.name}')
+    
+        self.k = k
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         #-----
         # init
@@ -407,15 +433,15 @@ class Methods():
         # first iter
         Ar[1] = self.A.dot(Ar[0])
         zeta = Ar[0].dot(Ar[1]) / Ar[1].dot(Ar[1])
-        Ay[0] = zeta*Ar[1]
-        z = -zeta*Ar[0]
+        Ay[0] = zeta * Ar[1]
+        z = -zeta * Ar[0]
         Ar[0] -= Ay[0]
         self.x -= z
         #-----------
 
-        alpha = np.empty(2*k + 3, T)
-        beta = np.empty(2*k + 2, T)
-        delta = np.empty(2*k + 1, T)
+        alpha = np.empty(2*k+3, T)
+        beta = np.empty(2*k+2, T)
+        delta = np.empty(2*k+1, T)
 
         beta[0] = 0
 
@@ -428,6 +454,7 @@ class Methods():
             rrr = np.linalg.norm(Ar[0]) / self.b_norm
 
             if rrr > pre:
+
                 self.x = pre_x.copy()
                 Ar[0] = self.b - self.A.dot(self.x)
                 Ar[1] = self.A.dot(Ar[0])
@@ -447,30 +474,34 @@ class Methods():
                 pre_x = self.x.copy()
 
             if rrr < Methods.epsilon:
-                self._converged(i,i-dif,k=k)
+                print('converged')
+                final_k = k
+                print(f'iter: {i} times')
+                print(f'final_k: {final_k}')
+                print(f'residual: {self.residual[i- dif]}')
                 break
 
-            for j in range(1, k + 2):
+            for j in range(1, k+2):
                 Ar[j] = self.A.dot(Ar[j-1])
 
-            for j in range(1, k + 1):
+            for j in range(1, k+1):
                 Ay[j] = self.A.dot(Ay[j-1])
 
-            for j in range(2*k + 3):
+            for j in range(2*k+3):
                 jj = j // 2
                 alpha[j] = Ar[jj].dot(Ar[jj + j%2])
 
-            for j in range(1, 2*k + 2):
+            for j in range(1, 2*k+2):
                 jj = j//2
                 beta[j] = Ay[jj].dot(Ar[jj + j%2])
 
-            for j in range(2*k + 1):
+            for j in range(2*k+1):
                 jj = j // 2
                 delta[j] = Ay[jj].dot(Ay[jj + j%2])
 
             sigma = alpha[2]*delta[0] - beta[1]**2
-            zeta = alpha[1]*delta[0]/sigma
-            eta = -alpha[1]*beta[1]/sigma
+            zeta = alpha[1]*delta[0] / sigma
+            eta = -alpha[1]*beta[1] / sigma
 
             Ay[0] = eta*Ay[0] + zeta*Ar[1]
             z = eta*z - zeta*Ar[0]
@@ -506,16 +537,24 @@ class Methods():
             self.solution_updates[i + 1 - dif] = self.solution_updates[i - dif] + k + 1
 
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
+        
             
         self.iter = i + 1
         self.time = time.time() - self.start
         print(f'time: {self.time}')
    
     def variablekskipmrr(self,k,T=np.float64):
-        self._setup('variable k-skip MrR',k=k)
+        self.name = 'variable k-skip MrR'
+        print(f'name:{self.name}')
+    
+        self.k = k
+        self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        self.start = time.time()
         
         tmp = k * 100
+        
         #-----
         # init
         Ar = np.empty(((k+3) * tmp, self.N), T)
@@ -579,7 +618,11 @@ class Methods():
 
 
             if rrr < Methods.epsilon:
-                self._converged(i,i-dif,k)
+                print('converged')
+                final_k = k
+                print(f'iter: {i} times')
+                print(f'final_k: {final_k}')
+                print(f'residual: {self.residual[i- dif]}')
                 break
 
             for j in range(1, k+2):
@@ -638,8 +681,10 @@ class Methods():
             self.solution_updates[i + 1 - dif] = self.solution_updates[i - dif] + k + 1
 
         else:
-            self._diverged()
+            print('Diverged')
+            self.converged = False
         
+            
         self.iter = i + 1
         self.time = time.time() - self.start
         print(f'time: {self.time}')
