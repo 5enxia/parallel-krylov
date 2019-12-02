@@ -21,8 +21,7 @@ def matrixLoader(directory,version,length):
         
         A = np.reshape(A,(size,size))
         return A
-        
-        
+         
 def vectorLoader(directory,version,length):
     fn = directory + '/' +'vector_' + str(version) + '-' + str(length) + '.txt'
     

@@ -72,8 +72,8 @@ class Methods():
 
     def plot(self,figsize=(4,3)):
         plt.figure(figsize=figsize)
-        plt.plot(self.solution_updates[:self.iter],self.residual[:self.iter], '-o', lw=Methods.lw, label=self.name, 
-                 markersize=Methods.makersize)
+        plt.plot(self.solution_updates[:self.iter],self.residual[:self.iter], 
+                 '-o', lw=Methods.lw, label=self.name, markersize=Methods.makersize)
         Methods._set_plot()
         plt.show()
        
@@ -87,13 +87,20 @@ class Methods():
         
         nosu = ("Number of Solution Updates", self.solution_updates[:self.iter].tolist())
         residual_norm = ('Residual Norm', self.residual[:self.iter].tolist())
-        results = dict([('converged',self.converged),('k',self.k),("iter",self.iter),nosu,residual_norm])  
+        results = dict([
+            ('converged',self.converged),('k',self.k),("iter",self.iter),nosu,residual_norm
+        ])  
         
         output_data = {"metadata":metadata,'results':results}        
         
         with open(fn,'w') as f:
-            json.dump(output_data, f, ensure_ascii=False, indent=4, sort_keys=False, separators=(',', ': '))
-            f.close()
+            json.dump(
+                output_data, 
+                f, 
+                ensure_ascii=False, 
+                indent=4, 
+                sort_keys=False, 
+                separators=(',', ': '))
             
     # ===============================Krylov Methods===============================
     def _setup(self,name,k=None):
@@ -109,13 +116,15 @@ class Methods():
         print(f'iter: {iter_index} times')
         print(f'final_k: {k}')
         print(f'residual: {self.residual[residual_index]}')
-        print('--------------------')
         
-    
     def _diverged(self):
         print('Status: Diverged')
-        print('--------------------')
         self.converged = False
+        
+    def _teardonw(self):
+        self.time = time.time() - self.start
+        print(f'time: {self.time}')
+        print('--------------------')
         
     def cg(self,T=np.float64):
         self._setup(name='CG')
@@ -142,10 +151,9 @@ class Methods():
         
         else:
             self._diverged()
-    
+            
         self.iter = i
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
         
     def pcg(self,M,T=np.float64):
         self._setup(name='Preconditioned CG')
@@ -177,8 +185,7 @@ class Methods():
             self._diverged()
     
         self.iter = i
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
         
     def mrr(self,T=np.float64):
         self._setup(name='MrR')
@@ -220,8 +227,7 @@ class Methods():
             self._diverged()
         
         self.iter = i
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
     
     def kskipcg(self,k,T=np.float64):
         self._setup('k-skip CG',k=k)
@@ -292,8 +298,7 @@ class Methods():
             self._diverged()
     
         self.iter = i + 1
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
       
     def kskipmrr(self,k,T=np.float64):
         self._setup('k-skip MrR',k=k)
@@ -388,8 +393,7 @@ class Methods():
             self._diverged()
             
         self.iter = i + 1
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
 
     def adaptivekskipmrr(self,k,T=np.float64):
         self._setup('adaptive k-skip MrR',k=k)
@@ -509,8 +513,7 @@ class Methods():
             self._diverged()
             
         self.iter = i + 1
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
+        self._teardonw()
    
     def variablekskipmrr(self,k,T=np.float64):
         self._setup('variable k-skip MrR',k=k)
@@ -641,7 +644,6 @@ class Methods():
             self._diverged()
         
         self.iter = i + 1
-        self.time = time.time() - self.start
-        print(f'time: {self.time}')
-    # ===============================Methods===============================
+        self._teardonw()
+    # ===============================Krylov Methods===============================
 
