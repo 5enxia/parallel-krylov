@@ -59,7 +59,7 @@ class Methods():
         self.N = b.size
         self.converged = True
         self.max_iter = self.N
-        self.residual = np.zeros(self.max_iter ,T)
+        self.residual = np.zeros(self.max_iter+1,T)
         self.solution_updates = np.zeros(self.max_iter+1,np.int)
         self.solution_updates[0] = 0
 
@@ -94,9 +94,11 @@ class Methods():
             ("final_k",self.final_k),
             ("iter",self.iter),
             nosu,
-            residual_norm,
-            ("k",self.ks)
-        ])  
+            residual_norm
+        ])
+        
+        if self.ks:
+            results['k'] = self.ks
         
         output_data = {"metadata":metadata,'results':results}        
         
@@ -123,7 +125,8 @@ class Methods():
         print('Status: converged')
         print(f'iter: {iter_index} times')
         self.final_k = k
-        print(f'final_k: {k}')
+        print(f'initial_k: {self.initial_k}')
+        print(f'final_k: {self.final_k}')
         print(f'residual: {self.residual[residual_index]}')
         
     def _diverged(self):
@@ -525,13 +528,13 @@ class Methods():
         self.iter = i + 1
         self._teardonw()
     #--------------------------------------------------------------------------#    
-    def variablekskipmrr(self,k,T=np.float64):
+    def variablekskipmrr(self,k,countuplimit=2,T=np.float64):
         self._setup('variable k-skip MrR',k=k)
         
         # test
-        tmp = k * 100
+        tmp = k * self.max_iter
         self.ks = list()
-        ks.append(k)
+        self.ks.append(k)
         
         #-----
         # init
@@ -583,9 +586,8 @@ class Methods():
                     dif += 1
                     k -= 1
                     
-                    # test
-                    if count > 1:
-                        count -= 1
+                # test
+                count = 0
 
             else:
                 pre = rrr
@@ -594,11 +596,12 @@ class Methods():
                 
                 # test
                 count += 1
-                if count > 0:
+                if count > countuplimit:
+                    dif -= 1
                     k += 1
             
             # test
-            ks.append(k)
+            self.ks.append(k)
 
 
             if rrr < Methods.epsilon:
