@@ -70,6 +70,10 @@ class Methods():
             self.solution_updates = data['results']['Number of Solution Updates']
             self.residual = data['results']['Residual Norm']
             self.iter = data['results']['iter']
+            
+            self.converged = data['results']['converged']
+            self.initial_k = data['results']['initial_k']
+            self.final_k = data['results']['final_k']
 
     def plot(self,figsize=(4,3)):
         plt.figure(figsize=figsize)
@@ -120,6 +124,7 @@ class Methods():
         print(f'name:{self.name}')
         self.k = k
         self.initial_k = k
+        self.final_k = k
         self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         self.start = time.time()
     
