@@ -20,9 +20,10 @@ import matplotlib.pyplot as plt
 
 class Methods():
     epsilon = 1e-10
-    makersize=3
+    makersize = 3
     lw = 1
     
+    # ===============================Utility Methods============================== #
     @staticmethod
     def multiplot(dataArray,figsize=(4,3),markersize=3):
         upper_limit = 0
@@ -57,7 +58,7 @@ class Methods():
         self.b_norm = np.linalg.norm(b)
         self.N = b.size
         self.converged = True
-        self.max_iter = self.N * 2
+        self.max_iter = self.N
         self.residual = np.zeros(self.max_iter ,T)
         self.solution_updates = np.zeros(self.max_iter+1,np.int)
         self.solution_updates[0] = 0
@@ -88,7 +89,13 @@ class Methods():
         nosu = ("Number of Solution Updates", self.solution_updates[:self.iter].tolist())
         residual_norm = ('Residual Norm', self.residual[:self.iter].tolist())
         results = dict([
-            ('converged',self.converged),('k',self.k),("iter",self.iter),nosu,residual_norm
+            ('converged',self.converged),
+            ('initial_k',self.initial_k),
+            ("final_k",self.final_k),
+            ("iter",self.iter),
+            nosu,
+            residual_norm,
+            ("k",self.ks)
         ])  
         
         output_data = {"metadata":metadata,'results':results}        
@@ -101,19 +108,21 @@ class Methods():
                 indent=4, 
                 sort_keys=False, 
                 separators=(',', ': '))
-            
-    # ===============================Krylov Methods===============================
+    # ============================================================================ #            
+    # ===============================Common Methods=============================== #
     def _setup(self,name,k=None):
         print('--------------------')
         self.name = name
         print(f'name:{self.name}')
         self.k = k
+        self.initial_k = k
         self.date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         self.start = time.time()
     
     def _converged(self,iter_index,residual_index,k=None):
         print('Status: converged')
         print(f'iter: {iter_index} times')
+        self.final_k = k
         print(f'final_k: {k}')
         print(f'residual: {self.residual[residual_index]}')
         
@@ -125,7 +134,8 @@ class Methods():
         self.time = time.time() - self.start
         print(f'time: {self.time}')
         print('--------------------')
-        
+    # ============================================================================ #    
+    # ===============================Krylov Methods=============================== #
     def cg(self,T=np.float64):
         self._setup(name='CG')
         
@@ -154,7 +164,7 @@ class Methods():
             
         self.iter = i
         self._teardonw()
-        
+    #--------------------------------------------------------------------------#    
     def pcg(self,M,T=np.float64):
         self._setup(name='Preconditioned CG')
         
@@ -186,7 +196,7 @@ class Methods():
     
         self.iter = i
         self._teardonw()
-        
+    #--------------------------------------------------------------------------#    
     def mrr(self,T=np.float64):
         self._setup(name='MrR')
         
@@ -228,7 +238,7 @@ class Methods():
         
         self.iter = i
         self._teardonw()
-    
+    #--------------------------------------------------------------------------#    
     def kskipcg(self,k,T=np.float64):
         self._setup('k-skip CG',k=k)
         
@@ -299,7 +309,7 @@ class Methods():
     
         self.iter = i + 1
         self._teardonw()
-      
+    #--------------------------------------------------------------------------#    
     def kskipmrr(self,k,T=np.float64):
         self._setup('k-skip MrR',k=k)
         
@@ -394,7 +404,7 @@ class Methods():
             
         self.iter = i + 1
         self._teardonw()
-
+    #--------------------------------------------------------------------------#    
     def adaptivekskipmrr(self,k,T=np.float64):
         self._setup('adaptive k-skip MrR',k=k)
         
@@ -514,11 +524,15 @@ class Methods():
             
         self.iter = i + 1
         self._teardonw()
-   
+    #--------------------------------------------------------------------------#    
     def variablekskipmrr(self,k,T=np.float64):
         self._setup('variable k-skip MrR',k=k)
         
+        # test
         tmp = k * 100
+        self.ks = list()
+        ks.append(k)
+        
         #-----
         # init
         Ar = np.empty(((k+3) * tmp, self.N), T)
@@ -538,6 +552,7 @@ class Methods():
         self.x -= z
         #-----------
 
+        # test
         alpha = np.empty((2*k+3) * tmp, T) #modified
         beta = np.empty((2*k+2) *tmp, T) #modified
         delta = np.empty((2*k+1) * tmp, T) #modified
@@ -550,7 +565,7 @@ class Methods():
         count = 0
 
         for i in range(1, self.max_iter):
-
+            
             rrr = np.linalg.norm(Ar[0]) / self.b_norm
 
             if rrr > pre:
@@ -567,6 +582,8 @@ class Methods():
                 if k > 1:
                     dif += 1
                     k -= 1
+                    
+                    # test
                     if count > 1:
                         count -= 1
 
@@ -577,8 +594,11 @@ class Methods():
                 
                 # test
                 count += 1
-                if count > 1:
+                if count > 0:
                     k += 1
+            
+            # test
+            ks.append(k)
 
 
             if rrr < Methods.epsilon:
@@ -645,5 +665,5 @@ class Methods():
         
         self.iter = i + 1
         self._teardonw()
-    # ===============================Krylov Methods===============================
+    # ============================================================================ #
 
