@@ -8,6 +8,6 @@ for v in {0..1}
 do
     for i in {0..2}
     do
-        python3 variable_k_skip_mrr.py "${version[$v]}" "${len[$i]}" "${k}"
+        python3 main.py "${version[$v]}" "${len[$i]}" "${k}"
     done
 done

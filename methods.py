@@ -97,8 +97,10 @@ class Methods():
             residual_norm
         ])
         
-        if self.ks:
+        try:
             results['k'] = self.ks
+        except:
+            pass
         
         output_data = {"metadata":metadata,'results':results}        
         
@@ -411,6 +413,9 @@ class Methods():
     def adaptivekskipmrr(self,k,T=np.float64):
         self._setup('adaptive k-skip MrR',k=k)
         
+        # test 
+        self.ks = list()
+        
         #-----
         # init
         Ar = np.empty((k+3, self.N), T)
@@ -462,6 +467,9 @@ class Methods():
                 pre = rrr
                 self.residual[i - dif] = rrr
                 pre_x = self.x.copy()
+                
+            # test
+            self.ks.append(k)
 
             if rrr < Methods.epsilon:
                 self._converged(i,i-dif,k=k)
@@ -533,8 +541,6 @@ class Methods():
         
         # test
         tmp = k * self.max_iter
-        self.ks = list()
-        self.ks.append(k)
         
         #-----
         # init
