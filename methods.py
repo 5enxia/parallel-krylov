@@ -545,7 +545,9 @@ class Methods():
         self._setup('variable k-skip MrR',k=k)
         
         # test
-        tmp = k * self.max_iter
+#         tmp = k * self.max_iter
+        tmp = k * k * self.max_iter
+        self.ks = list()
         
         #-----
         # init

@@ -14,7 +14,7 @@ from krylov.methods import Methods
 # In[2]:
 
 
-length = int(sys.argv[1])
+# length = int(sys.argv[1])
 length = 1081
 version = 'EFG'
 directory = 'data'
@@ -27,19 +27,34 @@ A = loader.matrixLoader(directory,version,length)
 b = loader.vectorLoader(directory,version,length)
 
 
-# In[15]:
+# In[4]:
 
 
-for k in range(1,2):
-    kskipmrr = Methods(A,b)
-    kskipmrr.kskipmrr(k=k)
-    
-    kskipmrr.output('./results/' + str(length) + '/' + version + '/' + 'kskipmrr_' + str(k) + '.json')
-    
+k = 8
+
+
+# In[5]:
+
+
+for k in range(1,10):
+#     kskipmrr = Methods(A,b)
+#     kskipmrr.kskipmrr(k=k)
     adaptivekskipmrr = Methods(A,b)
     adaptivekskipmrr.adaptivekskipmrr(k=k)
-    
-    adaptivekskipmrr.output('results/' + str(length) + '/' + version + '/' + ' adaptivekskipmrr_' + str(k) + '.json')
+    variable = Methods(A,b)
+    variable.variablekskipmrr(k=k)
+#     Methods.multiplot([kskipmrr,adaptivekskipmrr],figsize=(12,8))
+    Methods.multiplot([variable,adaptivekskipmrr],figsize=(12,8))    
+
+
+# In[7]:
+
+
+kskipjson = Methods(A,b)
+adaptivejson = Methods(A,b)
+kskipjson.json2instance('kskip.json')
+adaptivejson.json2instance('adaptive.json')
+Methods.multiplot([kskipmrr,adaptivekskipmrr],figsize=(12,8))
 
 
 # In[ ]:
