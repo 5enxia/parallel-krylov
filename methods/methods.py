@@ -541,13 +541,15 @@ class Methods():
         self.iter = i + 1
         self._teardonw()
     #--------------------------------------------------------------------------#    
-    def variablekskipmrr(self,k,countuplimit=2,T=np.float64):
+    def variablekskipmrr(self,k,T=np.float64):
         self._setup('variable k-skip MrR',k=k)
         
         # test
-#         tmp = k * self.max_iter
-        tmp = k * k * self.max_iter
+        tmp = k * (self.max_iter)
         self.ks = list()
+        old_div_r = 0
+        mid_div_r = 0
+        new_div_r = 0
         
         #-----
         # init
@@ -578,11 +580,16 @@ class Methods():
         self.solution_updates[1] = 1
 
         dif = 0
+        
+        # test
         count = 0
 
         for i in range(1, self.max_iter):
             
             rrr = np.linalg.norm(Ar[0]) / self.b_norm
+            
+            #test
+            new_div_log_r = np.log10(rrr) - np.log10(pre)
 
             if rrr > pre:
 
@@ -597,23 +604,23 @@ class Methods():
 
                 if k > 1:
                     dif += 1
-                    k -= 1
-                    
-                # test
-                count = 0
+                    k -= 1      
 
             else:
                 pre = rrr
                 self.residual[i - dif] = rrr
                 pre_x = self.x.copy()
                 
-                # test
-                count += 1
-                if count > countuplimit:
-                    dif -= 1
-                    k += 1
+                #test
+                if k < 8:
+                    if new_div_log_r < mid_div_r < old_div_r: 
+                        if dif > 0:
+                            dif -= 1
+                        k += 1
             
             # test
+            old_div_r = mid_div_r
+            mid_div_r = new_div_log_r
             self.ks.append(k)
 
 
