@@ -9,7 +9,7 @@ def init(A, b, T = np.float64):
     x = np.zeros(b.size,T)
     b_norm = norm(b)
     N = b.size
-    max_iter = N * 2
+    max_iter = N#* 2
     residual = np.zeros(max_iter + 1,T)
     solution_updates = np.zeros(max_iter + 1, np.int)
     solution_updates[0] = 0
@@ -23,7 +23,7 @@ def start(method_name = '', k = None):
 
     return time.perf_counter()
 
-def end(start_time, isConverged, num_of_iter, residual, residual_index):
+def end(start_time, isConverged, num_of_iter, residual, residual_index, final_k = None):
     elapsed_time = time.perf_counter() - start_time
 
     print(f'time:\t{ elapsed_time } s')
@@ -32,6 +32,8 @@ def end(start_time, isConverged, num_of_iter, residual, residual_index):
     if isConverged:
         print(f'iteration:\t{ num_of_iter } times')
         print(f'residual:\t{residual[residual_index]}')
+        if final_k:
+            print(f'final k:\t{final_k}')
     print('# ===================================== #')
 
     return elapsed_time

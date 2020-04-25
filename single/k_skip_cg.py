@@ -7,7 +7,7 @@ from numpy.linalg import norm, multi_dot
 def k_skip_cg(A, b, k, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
 
-    start_time = start(method_name = sys._getframe().f_code.co_name, k = k)
+    start_time = start(method_name = 'k-skip CG', k = k)
     
     Ar = np.zeros((k + 2, N), T)
     Ar[0] = b - dot(A,x)
