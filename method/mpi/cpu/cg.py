@@ -32,7 +32,7 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
             isConverged = True
             break
 
-        beta = vecvec(r,r,comm) / vecvec(old_r, old_r,comm)
+        beta = vecvec(r,r,comm) / vecvec(old_r, old_r,comm) # dot
         p = r + beta * p
 
     else:

@@ -3,7 +3,7 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm, multi_dot
 
-from krylov.method.single.common import init, start, end 
+from krylov.method.single.cpu.common import init, start, end 
 
 def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)

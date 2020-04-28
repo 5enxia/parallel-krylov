@@ -1,9 +1,9 @@
 import sys
 import unittest
 
-sys.path.append('../../')
+sys.path.append('../../../../')
 from krylov.util import loader,toepliz_matrix_generator,precondition
-from krylov.method.single.pcg import pcg
+from krylov.method.single.cpu.pcg import pcg
 import numpy as np 
 
 class TestCgMethod(unittest.TestCase):
