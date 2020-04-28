@@ -1,9 +1,13 @@
 import sys
 import numpy as np
 from numpy import dot
-from numpy.linalg import norm, multi_dot
+from numpy.linalg import norm
 
-from krylov.method.single.cpu.common import init, start, end 
+if __name__ == "__main__":
+    sys.path.append('../../../../')
+
+from krylov.method.single.common import start, end 
+from krylov.method.single.cpu.common import init 
 
 def cg(A, b, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
@@ -15,7 +19,7 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     p = r.copy()
 
     for i in range(0, max_iter):
-        alpha = dot(r,p) / multi_dot([p,A,p]) 
+        alpha = dot(r,p) / dot(dot(p,A),p) 
         x += alpha * p
         old_r = r.copy()
         r -= alpha * dot(A,p)
@@ -38,3 +42,18 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     end(start_time, isConverged, num_of_iter, residual, residual_index)
     
     return isConverged
+
+
+if __name__ == "__main__":
+    import unittest
+    from krylov.util import loader, toepliz_matrix_generator
+
+    class TestCgMethod(unittest.TestCase):
+        T = np.float64
+        epsilon = 1e-8
+
+        def test_single_cg_method(self):
+            A ,b = toepliz_matrix_generator.generate(N=1000,diag=2.5)
+            self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
+
+    unittest.main()

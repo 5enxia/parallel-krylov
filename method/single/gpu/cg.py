@@ -1,9 +1,11 @@
 import sys
-import numpy as np
-from numpy import dot
-from numpy.linalg import norm, multi_dot
 
-from krylov.method.single.cpu.common import init, start, end 
+import cupy as np
+from cupy import dot
+from cupy.linalg import norm
+
+from krylov.method.single._common import start, end
+from krylov.method.single.gpu._common import init, start, end 
 
 def cg(A, b, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
@@ -15,7 +17,7 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     p = r.copy()
 
     for i in range(0, max_iter):
-        alpha = dot(r,p) / multi_dot([p,A,p]) 
+        alpha = dot(r,p) / dot(dot(p,A),p)
         x += alpha * p
         old_r = r.copy()
         r -= alpha * dot(A,p)

@@ -3,7 +3,11 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm, multi_dot
 
-from krylov.method.single.cpu.common import init, start, end 
+if __name__ == "__main__":
+    sys.path.append('../../../../')
+
+from krylov.method.single.common import start, end 
+from krylov.method.single.cpu.common import init
 
 def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
@@ -130,3 +134,20 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     end(start_time, isConverged, num_of_iter, residual, residual_index, final_k = k)
 
     return isConverged
+
+
+
+if __name__ == "__main__":
+    import unittest
+    from krylov.util import loader, toepliz_matrix_generator
+
+    class TestCgMethod(unittest.TestCase):
+        epsilon = 1e-8
+        T = np.float64
+
+        def test_single_adaptive_k_skip_MrR_method(self):
+            k = 10 
+            A, b = toepliz_matrix_generator.generate()
+            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestCgMethod.epsilon, TestCgMethod.T))
+
+    unittest.main()
