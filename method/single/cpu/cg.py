@@ -1,4 +1,5 @@
 import sys
+
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm

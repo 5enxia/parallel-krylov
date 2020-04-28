@@ -4,8 +4,11 @@ import cupy as np
 from cupy import dot
 from cupy.linalg import norm
 
-from krylov.method.single._common import start, end
-from krylov.method.single.gpu._common import init, start, end 
+if __name__ == "__main__":
+    sys.path.append('../../../../')
+
+from krylov.method.single.common import start, end
+from krylov.method.single.gpu.common import init
 
 def cg(A, b, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
@@ -40,3 +43,19 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     end(start_time, isConverged, num_of_iter, residual, residual_index)
     
     return isConverged
+
+
+if __name__ == "__main__":
+    import unittest
+    from krylov.util import loader, toepliz_matrix_generator
+
+    class TestCgMethod(unittest.TestCase):
+        T = np.float64
+        epsilon = 1e-8
+
+        def test_single_cg_method(self):
+            A ,b = toepliz_matrix_generator.generate(N=1000,diag=2.5)
+            A, b= cp.asarray(A), cp.asarray(b)
+            self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
+
+    unittest.main()
