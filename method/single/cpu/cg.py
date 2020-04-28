@@ -54,7 +54,7 @@ if __name__ == "__main__":
         epsilon = 1e-8
 
         def test_single_cg_method(self):
-            A ,b = toepliz_matrix_generator.generate(N=1000,diag=2.5)
+            A ,b = toepliz_matrix_generator.generate(N=10000,diag=2.5)
             self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
 
     unittest.main()
