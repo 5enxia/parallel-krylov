@@ -52,9 +52,12 @@ if __name__ == "__main__":
     class TestCgMethod(unittest.TestCase):
         T = np.float64
         epsilon = 1e-8
+        N = 40000 
 
         def test_single_cg_method(self):
-            A ,b = toepliz_matrix_generator.generate(N=10000,diag=2.5)
+            N = TestCgMethod.N
+            A ,b = toepliz_matrix_generator.generate(N=N,diag=2.005)
+            print(f'N:\t{N}')
             self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
 
     unittest.main()

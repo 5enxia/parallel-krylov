@@ -49,12 +49,17 @@ if __name__ == "__main__":
     import unittest
     from krylov.util import loader, toepliz_matrix_generator
 
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+
     class TestCgMethod(unittest.TestCase):
         T = cp.float64
         epsilon = 1e-8
-
+        N = 40000
         def test_single_cg_method(self):
-            A ,b = toepliz_matrix_generator.generate(N=10000,diag=2.5)
+            N = TestCgMethod.N
+            A ,b = toepliz_matrix_generator.generate(N=N,diag=2.005)
+            print(f'N:\t{N}')
             A, b= cp.asarray(A), cp.asarray(b)
             self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
 
