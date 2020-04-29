@@ -3,8 +3,10 @@ import numpy as np
 from numpy.linalg import norm
 from mpi4py import MPI
 
-from krylov.method.mpi.common import init, start, end
-from krylov.method.mpi.common import matvec, vecvec, vecmat 
+if __name__ == "__main__":
+    sys.path.append('../../../../')
+
+from krylov.method.mpi.cpu.common import init, start, end, matvec, vecvec, vecmat 
 
 def cg(A, b, epsilon, callback = None, T = np.float64):
     comm = MPI.COMM_WORLD
@@ -43,5 +45,17 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     
     if rank == 0:
         end(start_time, isConverged, num_of_iter, residual, residual_index)
-    
+
     return isConverged
+
+
+if __name__ == "__main__":
+    from krylov.util import loader, toepliz_matrix_generator
+
+    T = np.float64
+    epsilon = 1e-8
+    N = 1000
+
+    A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005)
+    cg(A, b, epsilon, T)
+    
