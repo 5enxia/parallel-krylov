@@ -1,5 +1,6 @@
 import sys
 
+import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 
@@ -7,7 +8,7 @@ if __name__ == "__main__":
     sys.path.append('../../../../')
 
 from krylov.method.single.common import start, end 
-from krylov.method.single.cpu.common import init
+from krylov.method.single.gpu.common import init
 
 def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
@@ -139,7 +140,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 
 if __name__ == "__main__":
     import unittest
-    from krylov.util import loader, toepliz_matrix_generator
+    from krylov.util import toepliz_matrix_generator
     
     pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
     cp.cuda.set_allocator(pool.malloc)
@@ -151,8 +152,9 @@ if __name__ == "__main__":
 
         def test_single_adaptive_k_skip_MrR_method(self):
             k = 10 
-            N = TestMethod
+            N = TestMethod.N
             A, b = toepliz_matrix_generator.generate(N=N,diag=2.005)
-            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestMethod.epsilon, TestMethod.T))
+            A, b = cp.asarray(A), cp.asarray(b)
+            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestMethod.epsilon, T=TestMethod.T))
 
     unittest.main()

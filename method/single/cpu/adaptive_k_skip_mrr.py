@@ -141,13 +141,15 @@ if __name__ == "__main__":
     import unittest
     from krylov.util import loader, toepliz_matrix_generator
 
-    class TestCgMethod(unittest.TestCase):
+    class TestMethod(unittest.TestCase):
         epsilon = 1e-8
         T = np.float64
+        N = 40000
 
         def test_single_adaptive_k_skip_MrR_method(self):
             k = 10 
-            A, b = toepliz_matrix_generator.generate()
-            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestCgMethod.epsilon, TestCgMethod.T))
+            N = TestMethod.N
+            A, b = toepliz_matrix_generator.generate(N=N,diag=2.005)
+            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestMethod.epsilon, TestMethod.T))
 
     unittest.main()
