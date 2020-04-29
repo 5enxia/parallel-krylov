@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     T = np.float64
     epsilon = 1e-8
-    N = 1000
+    N = 1200
 
     A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005)
     cg(A, b, epsilon, T)
