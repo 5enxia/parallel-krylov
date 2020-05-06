@@ -1,51 +1,62 @@
 import sys
+from ..common import init, start, end 
+import numpy as np
+from numpy import dot
+from numpy.linalg import norm, multi_dot
 
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-
-from krylov.method.single.common import start, end 
-from krylov.method.single.gpu.common import init
-
-def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
+def variable_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
-    start_time = start(method_name = 'adaptive k-skip MrR', k = k)
+    start_time = start(method_name = 'variable k-skip MrR', k = k)
+    
 
     # ================ proto ================ #
     _k_history = list() 
-    # ======================================= #
-
-    Ar = cp.empty((k+3, N), T)
+    tmp = k * (max_iter)
+    old_div_r = 0
+    mid_div_r = 0
+    new_div_r = 0
+    
+    Ar = np.empty(((k + 3) * tmp, N), T)
     Ar[0] = b - dot(A,x)
     residual[0] = norm(Ar[0]) / b_norm
     pre = residual[0]
-    Ay = cp.empty((k + 2, N), T)
+    Ay = np.empty(((k + 2) * tmp, N), T)
+    # ======================================= #
 
     # ============== first iter ============= #
     Ar[1] = dot(A,Ar[0])
-    zeta = dot(Ar[0],Ar[1]) / dot(Ar[1],Ar[1])
+    zeta = dot(Ar[0],Ar[1]) / dot(Ar[0],Ar[1])
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
     # ======================================= #
 
-    alpha = cp.empty(2 * k + 3, T)
-    beta = cp.empty(2 * k + 2, T)
-    delta = cp.empty(2 * k + 1, T)
+    # ================ proto ================ #
+    alpha = np.empty((2 * k + 3) * tmp, T) 
+    beta = np.empty((2 * k + 2) * tmp, T) 
+    delta = np.empty((2 * k + 1) * tmp, T) 
+    # ======================================= #
     beta[0] = 0
 
     solution_updates[1] = 1
     dif = 0
+    
+    # ================ proto ================ #
+    count = 0
+    # ======================================= #
 
     for i in range(1, max_iter):
-
+        
         rrr = norm(Ar[0]) / b_norm
+        
+        # ================ proto ================ #
+        new_div_log_r = np.log10(rrr) - np.log10(pre)
+        # ======================================= #
 
         if rrr > pre:
+
             x = pre_x.copy()
             Ar[0] = b - dot(A,x)
             Ar[1] = dot(A,Ar[0])
@@ -57,18 +68,30 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 
             if k > 1:
                 dif += 1
-                k -= 1
+                k -= 1      
 
         else:
             pre = rrr
             residual[i - dif] = rrr
             pre_x = x.copy()
             
+            # ================ proto ================ #
+            if k < 8:
+                if new_div_log_r < mid_div_r < old_div_r: 
+                    if dif > 0:
+                        dif -= 1
+                    k += 1
+            # ======================================= #
+        
         # ================ proto ================ #
-        _k_history.append(k) 
+        old_div_r = mid_div_r
+        mid_div_r = new_div_log_r
+        _k_history.append(k)
         # ======================================= #
 
+
         if rrr < epsilon:
+            self._converged(i,i-dif,k)
             isConverged = True
             break
 
@@ -78,7 +101,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
         for j in range(1, k + 1):
             Ay[j] = dot(A,Ay[j-1])
 
-        for j in range(2 * k + 3):
+        for j in range(0, 2 * k + 3):
             jj = j // 2
             alpha[j] = dot(Ar[jj],Ar[jj+j%2])
 
@@ -128,32 +151,10 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 
     else:
         isConverged = False
-        
+    
     num_of_iter = i + 1
     residual_index = i - dif
 
     end(start_time, isConverged, num_of_iter, residual, residual_index, final_k = k)
 
     return isConverged
-
-
-if __name__ == "__main__":
-    import unittest
-    from krylov.util import toepliz_matrix_generator
-    
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-
-    class TestMethod(unittest.TestCase):
-        epsilon = 1e-8
-        T = cp.float64
-        N = 40000
-
-        def test_single_adaptive_k_skip_MrR_method(self):
-            k = 10 
-            N = TestMethod.N
-            A, b = toepliz_matrix_generator.generate(N=N,diag=2.005)
-            A, b = cp.asarray(A), cp.asarray(b)
-            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestMethod.epsilon, T=TestMethod.T))
-
-    unittest.main()
