@@ -46,23 +46,26 @@ def cg(A, b, epsilon, callback = None, T = cp.float64):
 
 
 if __name__ == "__main__":
+    import json
     import unittest
     from krylov.util import toepliz_matrix_generator
 
     pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
     cp.cuda.set_allocator(pool.malloc)
 
-    class TestMethod(unittest.TestCase):
+    class Test(unittest.TestCase):
+        with open('krylov/data/condition.json') as f:
+            params = json.load(f)
+        f.close()
+
         T = cp.float64
-        epsilon = 1e-8
-        N = 40000
+        epsilon = params['epsilon']
+        N = params['N']  
+        diag = params['diag']
 
         def test_single_cg_method(self):
-            N = TestMethod.N
-            A ,b = toepliz_matrix_generator.generate(N=N,diag=2.005)
-            print(f'N:\t{N}')
+            A ,b = toepliz_matrix_generator.generate(N=Test.N,diag=Test.diag)
             A, b= cp.asarray(A), cp.asarray(b)
-            
-            self.assertTrue(cg(A, b, TestMethod.epsilon, TestMethod.T))
+            self.assertTrue(cg(A, b, Test.epsilon, Test.T))
 
     unittest.main()

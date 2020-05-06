@@ -6,4 +6,4 @@
 /.ipynb_checkpoints
 *.ipynb
 /origin
-/data
+/data/*.txt

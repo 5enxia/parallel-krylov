@@ -138,22 +138,27 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 
 
 if __name__ == "__main__":
+    import json
     import unittest
     from krylov.util import toepliz_matrix_generator
     
     pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
     cp.cuda.set_allocator(pool.malloc)
 
-    class TestMethod(unittest.TestCase):
-        epsilon = 1e-8
+    class Test(unittest.TestCase):
+        with open('krylov/data/condition.json') as f:
+            params = json.load(f)
+        f.close()
+
         T = cp.float64
-        N = 40000
+        epsilon = params['epsilon']
+        N = params['N']  
+        diag = params['diag']
+        k = params['k']
 
         def test_single_adaptive_k_skip_MrR_method(self):
-            k = 10 
-            N = TestMethod.N
-            A, b = toepliz_matrix_generator.generate(N=N,diag=2.005)
+            A, b = toepliz_matrix_generator.generate(N=Test.N,diag=Test.diag)
             A, b = cp.asarray(A), cp.asarray(b)
-            self.assertTrue(adaptive_k_skip_mrr(A, b, k, TestMethod.epsilon, T=TestMethod.T))
+            self.assertTrue(adaptive_k_skip_mrr(A, b, Test.k, Test.epsilon, T=Test.T))
 
     unittest.main()
