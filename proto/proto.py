@@ -1,10 +1,12 @@
 import sys
-sys.path.append('../../')
-
-from mpi4py import MPI
 import numpy as np
+from numpy.linalg import norm
+from mpi4py import MPI
 
-from krylov.util.toepliz_matrix_generator import generate
+if __name__ == "__main__":
+    sys.path.append('../../../../')
+
+from krylov.method.mpi.cpu.common import init, start, end, matvec, vecvec, vecmat 
 
 
 if __name__ == "__main__":

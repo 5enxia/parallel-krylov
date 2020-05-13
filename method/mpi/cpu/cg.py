@@ -51,11 +51,16 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
 
 if __name__ == "__main__":
     from krylov.util import loader, toepliz_matrix_generator
+    import json
 
-    T = np.float64
-    epsilon = 1e-8
-    N = 1200
+    with open('krylov/data/condition.json') as f:
+        params = json.load(f)
+    f.close()
 
-    A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005)
+    T = cp.float64
+    epsilon = params['epsilon']
+    N = params['N']  
+    diag = params['diag']
+
+    A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005, T=T)
     cg(A, b, epsilon, T)
-    
