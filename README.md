@@ -2,6 +2,16 @@
 Krylov subspace methods module.
 Do not publish code before publishing paper.
 
+## requirements
+### libs
+- openmpi
+- cuda(10.1)
+### pip
+- numpy
+- scipy
+- mpi4py
+- cupy(10.1)
+
 ## settings
 ### on macOS(10.14.6)
 #### export below param
