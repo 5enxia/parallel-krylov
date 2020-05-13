@@ -21,7 +21,6 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
     residual[0] = norm(r) / b_norm
     p = r.copy()
 
-
     for i in range(0, max_iter):
         alpha = vecvec(r,p,comm) / vecvec(p,matvec(A,p,comm),comm) # dot
         x += alpha * p
@@ -30,8 +29,10 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
 
         residual[i+1] = norm(r) / b_norm
         solution_updates[i] = i + 1
-        if residual[i+1] < epsilon:
-            isConverged = True
+        
+        isConverged = np.array([residual[i+1] < epsilon], dtype=bool)
+        comm.Bcast(isConverged, root=0)
+        if isConverged:
             break
 
         beta = vecvec(r,r,comm) / vecvec(old_r, old_r,comm) # dot
@@ -39,6 +40,7 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
 
     else:
         isConverged = False
+
 
     num_of_iter = i + 1
     residual_index = num_of_iter
@@ -53,13 +55,13 @@ if __name__ == "__main__":
     from krylov.util import loader, toepliz_matrix_generator
     import json
 
-    with open('krylov/data/condition.json') as f:
+    with open('../../../../krylov/data/condition.json') as f:
         params = json.load(f)
     f.close()
 
-    T = cp.float64
+    T = np.float64
     epsilon = params['epsilon']
-    N = params['N']  
+    N = params['N'] 
     diag = params['diag']
 
     A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005, T=T)
