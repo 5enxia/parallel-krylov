@@ -64,5 +64,5 @@ if __name__ == "__main__":
     N = params['N'] 
     diag = params['diag']
 
-    A ,b = toepliz_matrix_generator.generate(N=N, diag=2.005, T=T)
+    A ,b = toepliz_matrix_generator.generate(N=N, diag=diag, T=T)
     cg(A, b, epsilon, T)

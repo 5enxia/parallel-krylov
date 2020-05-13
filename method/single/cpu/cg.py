@@ -50,14 +50,20 @@ if __name__ == "__main__":
     from krylov.util import loader, toepliz_matrix_generator
 
     class TestCgMethod(unittest.TestCase):
-        T = np.float64
-        epsilon = 1e-8
-        N = 40000 
-
         def test_single_cg_method(self):
-            N = TestCgMethod.N
-            A ,b = toepliz_matrix_generator.generate(N=N,diag=2.005)
+            import json
+
+            with open('../../../../krylov/data/condition.json') as f:
+                params = json.load(f)
+            f.close()
+
+            T = np.float64
+            epsilon = params['epsilon']
+            N = params['N'] 
+            diag = params['diag']
+
+            A ,b = toepliz_matrix_generator.generate(N=N, diag=diag, T=T)
             print(f'N:\t{N}')
-            self.assertTrue(cg(A, b, TestCgMethod.epsilon, TestCgMethod.T))
+            self.assertTrue(cg(A, b, epsilon, T))
 
     unittest.main()
