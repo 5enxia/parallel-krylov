@@ -6,11 +6,15 @@ Do not publish code before publishing paper.
 ### libs
 - openmpi
 - cuda(10.1)
+
 ### pip
 - numpy
 - scipy
 - mpi4py
 - cupy(10.1)
+
+### only exec with cuda and mpiexec.hydra
+- fastrlock
 
 ## settings
 ### on macOS(10.14.6)
