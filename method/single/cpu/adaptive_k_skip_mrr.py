@@ -145,7 +145,7 @@ if __name__ == "__main__":
         def test_single_adaptive_k_skip_MrR_method(self):
             import json
 
-            with open('../../../../krylov/data/condition.json') as f:
+            with open('condition.json') as f:
                 params = json.load(f)
             f.close()
 

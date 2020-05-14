@@ -146,7 +146,7 @@ if __name__ == "__main__":
     cp.cuda.set_allocator(pool.malloc)
 
     class Test(unittest.TestCase):
-        with open('krylov/data/condition.json') as f:
+        with open('condition.json') as f:
             params = json.load(f)
         f.close()
 

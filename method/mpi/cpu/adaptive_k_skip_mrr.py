@@ -146,7 +146,7 @@ if __name__ == "__main__":
     from krylov.util import loader, toepliz_matrix_generator
     import json
 
-    with open('../../../../krylov/data/condition.json') as f:
+    with open('condition.json') as f:
         params = json.load(f)
     f.close()
 
