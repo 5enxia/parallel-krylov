@@ -1,8 +1,11 @@
 /example
 /__pycache__
-*/__pycache__
-*/*/__pycahe__
-*/*/*/__pycahe__
+/*/__pycache__
+/*/*/__pycahe__
+/*/*/*/__pycahe__
+/*/*/*/*/__pycahe__
+/*/*/*/*/__pycahe__
+/*/*/*/*/*/__pycahe__
 /.ipynb_checkpoints
 *.ipynb
 /origin
