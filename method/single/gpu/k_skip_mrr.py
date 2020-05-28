@@ -114,17 +114,21 @@ if __name__ == "__main__":
     from krylov.util import toepliz_matrix_generator
 
     class TestMethod(unittest.TestCase):
-        epsilon = 1e-8
-        T = cp.float64
-        N = 40000
-
         def test_single_k_skip_MrR_method(self):
-            N = TestMethod.N
-            k = 10
-            A, b = toepliz_matrix_generator.generate(N=N,diag=2.005)
-            print(f'N:\t{N}')
-            A, b = cp.asarray(A), cp.asarray(b)
+            import json
 
+            with open('condition.json') as f:
+                params = json.load(f)
+            f.close()
+
+            T = np.float64
+            epsilon = params['epsilon']
+            N = params['N'] 
+            diag = params['diag']
+            k = params['k']
+
+            A, b = toepliz_matrix_generator.generate(N=N,diag=diag)
+            A, b = cp.asarray(A), cp.asarray(b)
             self.assertTrue(k_skip_mrr(A, b, k, TestMethod.epsilon, TestMethod.T))
 
     unittest.main()
