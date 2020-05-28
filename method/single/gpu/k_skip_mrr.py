@@ -112,6 +112,9 @@ def k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 if __name__ == "__main__":
     import unittest
     from krylov.util import toepliz_matrix_generator
+    
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
 
     class TestMethod(unittest.TestCase):
         def test_single_k_skip_MrR_method(self):
@@ -129,6 +132,6 @@ if __name__ == "__main__":
 
             A, b = toepliz_matrix_generator.generate(N=N,diag=diag)
             A, b = cp.asarray(A), cp.asarray(b)
-            self.assertTrue(k_skip_mrr(A, b, k, TestMethod.epsilon, TestMethod.T))
+            self.assertTrue(k_skip_mrr(A, b, k, epsilon, T))
 
     unittest.main()

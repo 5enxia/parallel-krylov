@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from numpy import dot
-from numpy.linalg import norm, multi_dot
+from numpy.linalg import norm
 
 if __name__ == "__main__":
     sys.path.append('../../../../')
@@ -128,6 +128,6 @@ if __name__ == "__main__":
             k = params['k']
 
             A, b = toepliz_matrix_generator.generate(N=N,diag=diag,T=T)
-            self.assertTrue(k_skip_mrr(A, b, k, TestCgMethod.epsilon, TestCgMethod.T))
+            self.assertTrue(k_skip_mrr(A, b, k, epsilon, T))
 
     unittest.main()
