@@ -17,28 +17,32 @@ def init(A, b, T = cp.float64):
 def matvec(A, b,comm,T=cp.float64):
     N = A.shape[0]
     num_of_process = comm.Get_size()
+    rank = comm.Get_rank()
 
-    y = cp.empty(N, T)
-    num_of_local_matrix_row = N // num_of_process 
-    local_A = cp.empty((num_of_local_matrix_row, N), dtype=T)
-    comm.Bcast(b, root=0)
-    comm.Scatter(A, local_A, root=0)
-    local_y = cp.dot(local_A, b)
-    comm.Gather(local_y, y, root=0)
-    return y
+    with cp.cuda.Device(rank%4):
+        y = cp.empty(N, T)
+        num_of_local_matrix_row = N // num_of_process 
+        local_A = cp.empty((num_of_local_matrix_row, N), dtype=T)
+        comm.Bcast(b, root=0)
+        comm.Scatter(A, local_A, root=0)
+        local_y = cp.dot(local_A, b)
+        comm.Gather(local_y, y, root=0)
+        return y
 
 def vecvec(a,b,comm,T=cp.float64):
     N = a.shape[0]
     num_of_process = comm.Get_size()
+    rank = comm.Get_rank()
 
-    y = cp.empty(1,T)
-    local_a = cp.empty(N // num_of_process, T)
-    local_b = cp.empty(N // num_of_process, T)
-    comm.Scatter(a, local_a, root=0)
-    comm.Scatter(b, local_b, root=0)
-    local_y = cp.dot(local_a,local_b)
-    comm.Reduce(local_y, y,root=0)
-    return y
+    with cp.cuda.Device(rank%4):
+        y = cp.empty(1,T)
+        local_a = cp.empty(N // num_of_process, T)
+        local_b = cp.empty(N // num_of_process, T)
+        comm.Scatter(a, local_a, root=0)
+        comm.Scatter(b, local_b, root=0)
+        local_y = cp.dot(local_a,local_b)
+        comm.Reduce(local_y, y,root=0)
+        return y
 
 def vecmat(a,B,comm,T=cp.float64):
     N = B.shape[0]
