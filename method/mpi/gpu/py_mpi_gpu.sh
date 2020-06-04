@@ -7,10 +7,10 @@
 #PJM -L "rscunit=ito-b"
 
 # resource group
-#PJM -L "rscgrp=ito-g-16-dbg"
+#PJM -L "rscgrp=ito-g-4-dbg"
 
 # number of virtual nodes
-#PJM -L "vnode=4"
+#PJM -L "vnode=1"
 
 # number of cores per virtual node
 #PJM -L "vnode-core=36"
@@ -29,9 +29,24 @@ module load intel/2019.4
 #-----------------------------------------------------
 
 
+# cuda vesion
+#-----------------------------------------------------
+module load cuda/10.1
+#-----------------------------------------------------
+
+
 # python version
 #-----------------------------------------------------
 module load python/3.6.2
+#-----------------------------------------------------
+
+
+# python package
+#-----------------------------------------------------
+pip install fastrlock --user
+pip install six --user
+pip install numpy --user
+pip install cupy-cuda101 --user
 #-----------------------------------------------------
 
 
@@ -47,7 +62,7 @@ NUM_CORES=36
 NUM_PROCS=4
 
 # number of threads per proc
-NUM_THREADS=36
+NUM_THREADS=1
 
 # number of MPI procs
 export I_MPI_PERHOST=$NUM_CORES='expr $NUM_CORES / $NUM_THREADS'
@@ -81,5 +96,5 @@ date
 
 # run
 #-----------------------------------------------------
-mpiexec.hydra -n $NUM_PROCS python3 adaptive_k_skip_mrr.py
+mpiexec.hydra -n $NUM_PROCS python3 adaptive_k_skip_mrr.py --gpu
 #-----------------------------------------------------
