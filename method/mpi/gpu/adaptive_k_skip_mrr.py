@@ -167,4 +167,5 @@ if __name__ == "__main__":
     k = params['k']
 
     A, b = toepliz_matrix_generator.generate(N=N,diag=diag,T=T)
+    A, b = cupy.asarray(A), cupy.asarray(b)
     adaptive_k_skip_mrr(A,b,k,epsilon,T)
