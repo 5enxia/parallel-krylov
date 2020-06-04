@@ -2,7 +2,7 @@ import sys
 
 import cupy as cp
 from cupy import dot
-from cupy.linalg import norm, multi_dot
+from cupy.linalg import norm
 
 if __name__ == "__main__":
     sys.path.append('../../../../')
@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 params = json.load(f)
             f.close()
 
-            T = np.float64
+            T = cp.float64
             epsilon = params['epsilon']
             N = params['N'] 
             diag = params['diag']
