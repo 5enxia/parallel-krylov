@@ -48,7 +48,9 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
 
         rrr = norm(Ar[0]) / b_norm
 
-        if rrr > pre:
+        isIncreaese = np.array([rrr > pre], dtype=bool)
+        comm.Bcast(isIncreaese,root=0)
+        if isIncreaese[0]:
             x = pre_x.copy()
             Ar[0] = b - matvec(A,x,comm) # dot
             Ar[1] = matvec(A,Ar[0],comm) # dot
@@ -73,7 +75,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
 
         isConverged = np.array([rrr < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
-        if isConverged:
+        if isConverged[0]:
             break
 
         for j in range(1, k + 2):
