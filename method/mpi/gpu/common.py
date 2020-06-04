@@ -1,5 +1,6 @@
 from mpi4py import MPI
 
+import numpy as np
 import cupy as cp 
 from cupy.linalg import norm
 
@@ -20,14 +21,14 @@ def matvec(A, b,comm,T=cp.float64):
     rank = comm.Get_rank()
 
     with cp.cuda.Device(rank%4):
-        y = cp.empty(N, T)
+        y = np.empty(N, T)
         num_of_local_matrix_row = N // num_of_process 
-        local_A = cp.empty((num_of_local_matrix_row, N), dtype=T)
-        comm.Bcast(b, root=0)
-        comm.Scatter(A, local_A, root=0)
+        local_A = np.empty((num_of_local_matrix_row, N), dtype=T)
+        comm.Bcast(b.get(), root=0)
+        comm.Scatter(A.get(), local_A, root=0)
         local_y = cp.dot(local_A, b)
-        comm.Gather(local_y, y, root=0)
-        return y
+        comm.Gather(local_y.get(), y, root=0)
+        return cp.asarray(y)
 
 def vecvec(a,b,comm,T=cp.float64):
     N = a.shape[0]
@@ -35,14 +36,14 @@ def vecvec(a,b,comm,T=cp.float64):
     rank = comm.Get_rank()
 
     with cp.cuda.Device(rank%4):
-        y = cp.empty(1,T)
-        local_a = cp.empty(N // num_of_process, T)
-        local_b = cp.empty(N // num_of_process, T)
-        comm.Scatter(a, local_a, root=0)
-        comm.Scatter(b, local_b, root=0)
+        y = np.empty(1,T)
+        local_a = np.empty(N // num_of_process, T)
+        local_b = np.empty(N // num_of_process, T)
+        comm.Scatter(a.get(), local_a, root=0)
+        comm.Scatter(b.get(), local_b, root=0)
         local_y = cp.dot(local_a,local_b)
-        comm.Reduce(local_y, y,root=0)
-        return y
+        comm.Reduce(local_y.get(), y,root=0)
+        return cp.asarray(y)
 
 def vecmat(a,B,comm,T=cp.float64):
     N = B.shape[0]
