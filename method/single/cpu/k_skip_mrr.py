@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from numpy import dot
-from numpy.linalg import norm, multi_dot
+from numpy.linalg import norm
 
 if __name__ == "__main__":
     sys.path.append('../../../../')
@@ -114,12 +114,20 @@ if __name__ == "__main__":
     from krylov.util import loader, toepliz_matrix_generator
 
     class TestCgMethod(unittest.TestCase):
-        epsilon = 1e-8
-        T = np.float64
-
         def test_single_k_skip_MrR_method(self):
-            k = 10 
-            A, b = toepliz_matrix_generator.generate()
-            self.assertTrue(k_skip_mrr(A, b, k, TestCgMethod.epsilon, TestCgMethod.T))
+            import json
+
+            with open('condition.json') as f:
+                params = json.load(f)
+            f.close()
+
+            T = np.float64
+            epsilon = params['epsilon']
+            N = params['N'] 
+            diag = params['diag']
+            k = params['k']
+
+            A, b = toepliz_matrix_generator.generate(N=N,diag=diag,T=T)
+            self.assertTrue(k_skip_mrr(A, b, k, epsilon, T))
 
     unittest.main()
