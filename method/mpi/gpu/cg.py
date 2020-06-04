@@ -1,4 +1,5 @@
 import sys
+
 import numpy as np
 from numpy.linalg import norm
 from mpi4py import MPI
@@ -53,10 +54,13 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
 
 
 if __name__ == "__main__":
-    from krylov.util import loader, toepliz_matrix_generator
     import json
+    from krylov.util import loader, toepliz_matrix_generator
 
-    with open('../../../../krylov/data/condition.json') as f:
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+
+    with open('condition.json') as f:
         params = json.load(f)
     f.close()
 
