@@ -35,7 +35,7 @@ def vecvec(a,b,comm,T=cp.float64):
     num_of_process = comm.Get_size()
     rank = comm.Get_rank()
 
-    with cp.cuda.Device(rank%4):
+    with cp.cuda.Device(0):
         y = np.empty(1,T)
         local_a = np.empty(N // num_of_process, T)
         local_b = np.empty(N // num_of_process, T)
