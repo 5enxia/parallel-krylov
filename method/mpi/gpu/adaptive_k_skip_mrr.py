@@ -4,6 +4,8 @@ import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 
+from mpi4py import MPI
+
 if __name__ == "__main__":
     sys.path.append('../../../../')
 
