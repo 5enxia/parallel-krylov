@@ -7,10 +7,10 @@
 #PJM -L "rscunit=ito-b"
 
 # resource group
-#PJM -L "rscgrp=ito-g-4-dbg"
+#PJM -L "rscgrp=ito-g-16-dbg"
 
 # number of virtual nodes
-#PJM -L "vnode=1"
+#PJM -L "vnode=4"
 
 # number of cores per virtual node
 #PJM -L "vnode-core=36"
@@ -43,10 +43,10 @@ module load python/3.6.2
 
 # python package
 #-----------------------------------------------------
-pip install fastrlock --user
-pip install six --user
-pip install numpy --user
-pip install cupy-cuda101 --user
+# pip install fastrlock --user
+# pip install six --user
+# pip install numpy --user
+# pip install cupy-cuda101 --user
 #-----------------------------------------------------
 
 

@@ -1,5 +1,6 @@
 import sys
 
+import numpy as np
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
@@ -53,7 +54,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
 
         rrr = norm(Ar[0]) / b_norm
 
-        isIncreaese = cp.array([rrr > pre], dtype=bool)
+        isIncreaese = np.array([rrr > pre], dtype=bool)
         comm.Bcast(isIncreaese,root=0)
         if isIncreaese[0]:
             x = pre_x.copy()
@@ -78,7 +79,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
         _k_history.append(k) 
         # ======================================= #
 
-        isConverged = cp.array([rrr < epsilon], dtype=bool)
+        isConverged = np.array([rrr < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged[0]:
             break
