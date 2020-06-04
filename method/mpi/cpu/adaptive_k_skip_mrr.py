@@ -19,6 +19,7 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
 
     # ================ proto ================ #
     _k_history = list() 
+    pre_x = None
     # ======================================= #
 
     Ar = np.empty((k+3, N), T)
