@@ -1,8 +1,8 @@
 import sys
 
-import numpy as np
-from numpy.linalg import norm
-from mpi4py import MPI
+import cupy as cp
+from cupy import dot
+from cupy.linalg import norm
 
 if __name__ == "__main__":
     sys.path.append('../../../../')
@@ -10,7 +10,7 @@ if __name__ == "__main__":
 from krylov.method.mpi.common import start, end
 from krylov.method.mpi.gpu.common import init, matvec, vecvec, vecmat 
 
-def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
+def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
@@ -23,11 +23,11 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     _k_history = list() 
     # ======================================= #
 
-    Ar = np.empty((k+3, N), T)
+    Ar = cp.empty((k+3, N), T)
     Ar[0] = b - matvec(A,x,comm) # dot
     residual[0] = norm(Ar[0]) / b_norm
     pre = residual[0]
-    Ay = np.empty((k + 2, N), T)
+    Ay = cp.empty((k + 2, N), T)
 
     # ============== first iter ============= #
     Ar[1] = matvec(A,Ar[0],comm) # dot
@@ -36,11 +36,12 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
+    pre_x = x.copy()
     # ======================================= #
 
-    alpha = np.empty(2 * k + 3, T)
-    beta = np.empty(2 * k + 2, T)
-    delta = np.empty(2 * k + 1, T)
+    alpha = cp.empty(2 * k + 3, T)
+    beta = cp.empty(2 * k + 2, T)
+    delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
 
     solution_updates[1] = 1
@@ -50,7 +51,9 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
 
         rrr = norm(Ar[0]) / b_norm
 
-        if rrr > pre:
+        isIncreaese = cp.array([rrr > pre], dtype=bool)
+        comm.Bcast(isIncreaese,root=0)
+        if isIncreaese[0]:
             x = pre_x.copy()
             Ar[0] = b - matvec(A,x,comm) # dot
             Ar[1] = matvec(A,Ar[0],comm) # dot
@@ -73,9 +76,9 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = np.float64):
         _k_history.append(k) 
         # ======================================= #
 
-        isConverged = np.array([rrr < epsilon], dtype=bool)
+        isConverged = cp.array([rrr < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
-        if isConverged:
+        if isConverged[0]:
             break
 
         for j in range(1, k + 2):
@@ -155,7 +158,7 @@ if __name__ == "__main__":
         params = json.load(f)
     f.close()
 
-    T = np.float64
+    T = cp.float64
     epsilon = params['epsilon']
     N = params['N'] 
     diag = params['diag']
