@@ -42,9 +42,9 @@ def adaptive_k_skip_mrr(A, b, k, epsilon, callback = None, T = cp.float64):
     pre_x = x.copy()
     # ======================================= #
 
-    alpha = cp.empty(2 * k + 3, T)
-    beta = cp.empty(2 * k + 2, T)
-    delta = cp.empty(2 * k + 1, T)
+    alpha = cp.empty((2 * k + 3, 1), T)
+    beta = cp.empty((2 * k + 2, 1), T)
+    delta = cp.empty((2 * k + 1,1), T)
     beta[0] = 0
 
     solution_updates[1] = 1

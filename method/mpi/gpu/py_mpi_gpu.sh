@@ -47,6 +47,7 @@ module load python/3.6.2
 # pip install six --user
 # pip install numpy --user
 # pip install cupy-cuda101 --user
+# pip install cupy-cuda101 -U --user
 #-----------------------------------------------------
 
 
