@@ -97,5 +97,6 @@ date
 
 # run
 #-----------------------------------------------------
-mpiexec.hydra -n $NUM_PROCS python3 adaptive_k_skip_mrr.py --gpu
+mpiexec.hydra -n $NUM_PROCS python3 cg.py --gpu
+# mpiexec.hydra -n $NUM_PROCS python3 adaptive_k_skip_mrr.py --gpu
 #-----------------------------------------------------
