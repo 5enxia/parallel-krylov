@@ -1,7 +1,7 @@
 import sys
 
-import numpy as np
-from numpy.linalg import norm
+import cupy as cp
+from cupy.linalg import norm
 from mpi4py import MPI
 
 if __name__ == "__main__":
@@ -10,7 +10,7 @@ if __name__ == "__main__":
 from krylov.method.mpi.common import start, end
 from krylov.method.mpi.gpu.common import init, matvec, vecvec, vecmat 
 
-def cg(A, b, epsilon, callback = None, T = np.float64):
+def cg(A, b, epsilon, callback = None, T = cp.float64):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
@@ -32,7 +32,7 @@ def cg(A, b, epsilon, callback = None, T = np.float64):
         residual[i+1] = norm(r) / b_norm
         solution_updates[i] = i + 1
         
-        isConverged = np.array([residual[i+1] < epsilon], dtype=bool)
+        isConverged = cp.array([residual[i+1] < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
@@ -64,10 +64,11 @@ if __name__ == "__main__":
         params = json.load(f)
     f.close()
 
-    T = np.float64
+    T = cp.float64
     epsilon = params['epsilon']
     N = params['N'] 
     diag = params['diag']
 
     A ,b = toepliz_matrix_generator.generate(N=N, diag=diag, T=T)
+    A, b = cupy.asarray(A), cupy.asarray(b)
     cg(A, b, epsilon, T)
