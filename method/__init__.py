@@ -1,1 +1,1 @@
-__all__ = ['single', 'mpi']
+__all__ = ['threads', 'process']
