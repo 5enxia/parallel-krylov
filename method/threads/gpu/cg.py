@@ -40,7 +40,7 @@ def cg(A, b, epsilon, T=cp.float64):
         isConverged = False
 
     num_of_iter = i + 1
-    residual_index = i 
+    residual_index = i
     end(start_time, isConverged, num_of_iter, residual, residual_index)
 
 
