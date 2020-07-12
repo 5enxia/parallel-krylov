@@ -2,3 +2,4 @@
 *.sh
 *.py.o*
 tmp/
+__pycache__/

@@ -48,7 +48,6 @@ def mrr(A, b, epsilon, T=np.float64):
         r -= y
         x -= z
         num_of_solution_updates[i] = i + 1
-
     else:
         isConverged = False
 

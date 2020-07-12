@@ -1,4 +1,5 @@
 *.sh.*
 *.sh
 *.py.o*
-__pychache__/
+tmp/
+__pycache__/*

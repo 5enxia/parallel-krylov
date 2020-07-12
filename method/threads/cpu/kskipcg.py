@@ -40,16 +40,13 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
             Ap[j] = dot(A, Ap[j-1])
         for j in range(2 * k + 1):
             jj = j // 2
-            a[j] = dot(Ar[jj], Ar[jj])
-            a[j+1] = dot(Ar[jj], Ar[jj+1])
-        for j in range(0, 2 * k + 3, 2):
+            a[j] = dot(Ar[jj], Ar[jj + j % 2])
+        for j in range(2 * k + 4):
             jj = j // 2
-            f[j] = dot(Ap[jj], Ap[jj])
-            f[j+1] = dot(Ap[jj], Ap[jj+1])
-        for j in range(0, 2 * k + 1, 2):
+            f[j] = dot(Ap[jj], Ap[jj + j % 2])
+        for j in range(2 * k + 2):
             jj = j // 2
-            c[j] = dot(Ar[jj], Ap[jj])
-            c[j+1] = dot(Ar[jj], Ap[jj+1])
+            c[j] = dot(Ar[jj], Ap[jj + j % 2])
 
         # CGでの1反復
         alpha = a[0] / f[1]
