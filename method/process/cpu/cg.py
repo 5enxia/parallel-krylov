@@ -7,17 +7,21 @@ from mpi4py import MPI
 if __name__ == "__main__":
     sys.path.append('../../../../')
     from krylov.method.common import getConditionParams
-    from krylov.method.process.cpu.common import init, start, end, matvec, vecvec 
+    from krylov.method.process.cpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
 
 
 def cg(A, b, epsilon, T=np.float64):
-    # 初期化
+    # 共通初期化
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    num_of_process = comm.Get_size()
     x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    local_N, local_A, Ax, local_Ax = init_matvec(N, num_of_process, T)
+    local_a, local_b = init_vecvec(local_N, T)
+    comm.Scatter(A, local_A, root=0)
 
     # 初期残差
-    r = b - matvec(A, x, comm)  # dot
+    r = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
     p = r.copy()
 
     # 反復計算
@@ -32,11 +36,12 @@ def cg(A, b, epsilon, T=np.float64):
             break
 
         # 解の更新
-        alpha = vecvec(r, p, comm) / vecvec(p, matvec(A, p, comm), comm)  # dot
+        v = mpi_matvec(local_A, p, Ax, local_Ax, comm)
+        alpha = mpi_vecvec(r, p, local_a, local_b, comm) / mpi_vecvec(p, v, local_a, local_b, comm)
         x += alpha * p
         old_r = r.copy()
-        r -= alpha * matvec(A, p, comm)  # dot
-        beta = vecvec(r, r, comm) / vecvec(old_r, old_r, comm)  # dot
+        r -= alpha * mpi_matvec(local_A, p, Ax, local_Ax, comm)
+        beta = mpi_vecvec(r, r, local_a, local_b, comm) / mpi_vecvec(old_r, old_r, local_a, local_b, comm)
         p = r + beta * p
         num_of_solution_updates[i] = i + 1
 

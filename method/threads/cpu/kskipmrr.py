@@ -80,7 +80,6 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
                 tau = eta * beta[l] + zeta * alpha[l + 1]
                 beta[l] = tau - delta[l]
                 alpha[l] -= tau + beta[l]
-
             # 解の更新
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d

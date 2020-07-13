@@ -125,5 +125,11 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
 
 
 if __name__ == "__main__":
+    # GPU Memory Settings
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+
     A, b, epsilon, k, T = getConditionParams('condition.json')
+    A, b = cp.asarray(A), cp.asarray(b)
+
     adaptive_k_skip_mrr(A, b, epsilon, k, T)

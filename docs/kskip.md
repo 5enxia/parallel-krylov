@@ -22,7 +22,7 @@ for j in range(2 * k + 2):
 
 ## Ar, Ap共通
 
-係数行列AをScatterして，local_Aに渡す
+係数行列AをScatterして，local_Aに渡す.（Aを生成した後に，一回だけ実行するだけでよい）
 
 #### Ar
 

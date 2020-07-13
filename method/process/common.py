@@ -9,7 +9,11 @@ def start(method_name='', k=None):
 
 
 def end(
-    start_time, isConverged, num_of_iter, residual, residual_index,
+    start_time,
+    isConverged,
+    num_of_iter,
+    residual,
+    residual_index,
     final_k=None
 ):
     elapsed_time = MPI.Wtime() - start_time
