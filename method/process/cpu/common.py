@@ -37,7 +37,10 @@ def init_matvec(N, num_of_process, T=np.float64):
         T ([type], optional): [description]. Defaults to np.float64.
 
     Returns:
-        [type]: [description]
+        [int]: [ローカル次元数(行数，列数)]
+        [np.ndarray]: [ローカル係数行列]
+        [np.ndarray]: [A.dot(x)の演算結果を格納する使い回しベクトル(N)]
+        [np.ndarray]: [local_A.dot(x)の演算結果を格納する使い回しベクトル(local_N)]
     """
     local_N = N // num_of_process
     local_A = np.empty((local_N, N), T)
@@ -51,11 +54,12 @@ def init_vecvec(local_N, T=np.float64):
     mpi_vecvecを実行する際に必要なローカル変数を初期化して返す
 
     Args:
-        local_N ([type]): [description]
-        T ([type], optional): [description]. Defaults to np.float64.
+        local_N ([int]): [ローカル次元数]
+        T ([np.dtype], optional): [numpy数値精度]. Defaults to np.float64.
 
     Returns:
-        [type]: [description]
+        [np.ndarray]: [演算結果を格納する使い回しベクトル(local_N)]
+        [np.ndarray]: [演算結果を格納する使い回しベクトル(local_N)]
     """
     local_a = np.empty(local_N, T)
     local_b = np.empty(local_N, T)
