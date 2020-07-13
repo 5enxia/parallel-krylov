@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     # 初期化
-    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = cp.empty((k + 3, N), T)
     Ay = cp.empty((k + 2, N), T)
     alpha = cp.empty(2 * k + 3, T)
@@ -33,7 +33,7 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
-    solution_updates[1] = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     for i in range(1, max_iter):
@@ -92,7 +92,7 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        solution_updates[i + 1] = solution_updates[i] + k + 1
+        num_of_solution_updates[i + 1] = num_of_solution_updates[i] + k + 1
 
     else:
         isConverged = False

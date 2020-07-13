@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     # 初期化
-    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = np.empty((k+3, N), T)
     Ay = np.empty((k + 2, N), T)
     alpha = np.empty(2 * k + 3, T)
@@ -35,7 +35,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
-    solution_updates[1] = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     for i in range(1, max_iter):
@@ -114,7 +114,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        solution_updates[i + 1 - dif] = solution_updates[i - dif] + k + 1
+        num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
 
     else:
         isConverged = False
