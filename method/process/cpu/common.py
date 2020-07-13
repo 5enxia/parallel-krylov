@@ -33,29 +33,44 @@ def end(
     return elapsed_time
 
 
-def matvec(A, b, comm, T=np.float64):
-    N = A.shape[0]
-    num_of_process = comm.Get_size()
-    num_of_local_row = N // num_of_process
+def matvec(A, local_A, x, Ax, local_Ax, comm):
+    """[summary]
 
-    y = np.empty(N, T)
-    local_A = np.empty((num_of_local_row, N), dtype=T)
-    comm.Bcast(b, root=0)
+    Args:
+        A (np.ndarray): [行列(N * N)]
+        local_A ([type]): [ローカル行列(local_N * N)]
+        x (np.ndarray): [ベクトル]
+        Ax (np.ndarray): [A.dot(x)]
+        local_Ax (np.ndarray): [local_A.dot(x)]
+        comm (): [MPI.COMM_WORLD()]
+
+    Returns:
+        [np.ndarray]: [演算結果]
+    """
+    comm.Bcast(x, root=0)
     comm.Scatter(A, local_A, root=0)
-    local_y = np.dot(local_A, b)
-    comm.Gather(local_y, y, root=0)
-    return y
+    local_Ax = np.dot(local_A, x)
+    comm.Gather(local_Ax, Ax, root=0)
+    return Ax
 
 
-def vecvec(a, b, comm, T=np.float64):
-    N = a.shape[0]
-    num_of_process = comm.Get_size()
+def vecvec(a, local_a, b, local_b, ab, local_ab, comm):
+    """[summary]
 
-    y = np.empty(1, T)
-    local_a = np.empty(N // num_of_process, T)
-    local_b = np.empty(N // num_of_process, T)
+    Args:
+        a (np.ndarray): [ベクトル1]
+        local_a ([type]): [ローカルベクトル1]
+        b ([type]): [ベクトル2]
+        local_b ([type]): [ローカルベクトル2]
+        ab ([type]): [a.dot(b)]
+        local_ab ([type]): [local_a.dot(local_b)]
+        comm ([type]): [MPI.COMM_WORLD()]
+
+    Returns:
+        [type]: [description]
+    """
     comm.Scatter(a, local_a, root=0)
     comm.Scatter(b, local_b, root=0)
-    local_y = np.dot(local_a, local_b)
-    comm.Reduce(local_y, y, root=0)
-    return y
+    local_ab = np.dot(local_a, local_b)
+    comm.Reduce(local_ab, ab, root=0)
+    return ab
