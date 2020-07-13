@@ -1,3 +1,4 @@
+import numpy as np
 import cupy as cp
 from cupy.linalg import norm
 from mpi4py import MPI
@@ -94,9 +95,13 @@ def mpi_matvec(local_A, x, Ax, local_Ax, comm):
     Returns:
         [np.ndarray]: [演算結果]
     """
-    comm.Bcast(x, root=0)
+    x_cpu = x.get()
+    comm.Bcast(x_cpu, root=0)
+    x = cp.asarray(x_cpu)
+
     local_Ax = cp.dot(local_A, x)
-    comm.Gather(local_Ax, Ax, root=0)
+
+    comm.Gather(local_Ax.get(), Ax, root=0)
     return Ax
 
 
@@ -115,9 +120,15 @@ def mpi_vecvec(a, b, local_a, local_b, comm):
     Returns:
         [np.ndarray]: [演算結果]
     """
-    ab = cp.empty(1, cp.float64)
-    comm.Scatter(a, local_a, root=0)
-    comm.Scatter(b, local_b, root=0)
+    ab = np.empty(1, cp.float64)
+    local_a_cpu = local_a.get()
+    local_b_cpu = local_b.get()
+    comm.Scatter(a.get(), local_a_cpu, root=0)
+    comm.Scatter(b.get(), local_b_cpu, root=0)
+    local_a = cp.asarray(local_a_cpu)
+    local_b = cp.asarray(local_b_cpu)
+    
     local_ab = cp.dot(local_a, local_b)
-    comm.Reduce(local_ab, ab, root=0)
+
+    comm.Reduce(local_ab.get(), ab, root=0)
     return ab

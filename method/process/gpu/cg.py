@@ -55,5 +55,16 @@ def cg(A, b, epsilon, T=cp.float64):
 
 
 if __name__ == "__main__":
+    # GPU Memory Settings
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+
+    # Current GPU Settings
+    rank = MPI.COMM_WORLD.Get_rank()
+    num_of_gpu = cp.cuda.runtime.getDeviceCount()
+    cp.cuda.Device(rank % num_of_gpu).use
+
     A, b, epsilon, k, T = getConditionParams('condition.json')
+    A, b = cp.asarray(A), cp.asarray(b)
+
     cg(A, b, epsilon, T)
