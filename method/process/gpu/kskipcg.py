@@ -1,8 +1,9 @@
 import sys
 
 import numpy as np
-from numpy import dot
-from numpy.linalg import norm
+import cupy as cp
+from cupy import dot
+from cupy.linalg import norm
 from mpi4py import MPI
 
 if __name__ == "__main__":
@@ -18,17 +19,22 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
     num_of_process = comm.Get_size()
     x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     local_N, local_A, Ax, local_Ax = init_matvec(N, num_of_process, T)
-    comm.Scatter(A, local_A, root=0)
+    local_a, local_b = init_vecvec(local_N, T)
+    local_A_cpu = local_A.get()
+    comm.Scatter(A, local_A_cpu, root=0)
+    local_A = cp.asarray(local_A_cpu)
     # root
-    Ar = np.zeros((k + 2, N), T)
-    Ap = np.zeros((k + 3, N), T)
-    a = np.zeros(2*k + 2, T)
-    f = np.zeros(2*k + 4, T)
-    c = np.zeros(2*k + 2, T)
+    Ar = cp.zeros((k + 2, N), T)
+    Ap = cp.zeros((k + 3, N), T)
+    a = cp.zeros(2*k + 2, T)
+    f = cp.zeros(2*k + 4, T)
+    c = cp.zeros(2*k + 2, T)
     # local
-    local_a = np.zeros(2*k + 2, T)
-    local_f = np.zeros(2*k + 4, T)
-    local_c = np.zeros(2*k + 2, T)
+    local_Ar = cp.zeros((k + 2, local_N), T)
+    local_Ap = cp.zeros((k + 3, local_N), T)
+    local_a = cp.zeros(2*k + 2, T)
+    local_f = cp.zeros(2*k + 4, T)
+    local_c = cp.zeros(2*k + 2, T)
 
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
@@ -40,39 +46,46 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
     for i in range(max_iter):
         # 収束判定
         residual[i] = norm(Ar[0]) / b_norm
-        isConverged = np.array([residual[i] < epsilon], dtype=bool)
+        isConverged = np.array([residual[i].get() < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
 
         # 事前計算
         for j in range(1, k + 1):
-            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
+            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ar, comm)
         for j in range(1, k + 2):
-            Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ax, comm)
-        comm.Bcast(Ar)
-        comm.Bcast(Ap)
+            Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ap, comm)
+        Ar_cpu = Ar.get() # Ar_cpu
+        Ap_cpu = Ap.get() # Ap_cpu
+        comm.Bcast(Ar_cpu)
+        comm.Bcast(Ap_cpu)
+        Ar = cp.asarray(Ar_cpu)
+        Ap = cp.asarray(Ap_cpu)
         for j in range(2 * k + 1):
             jj = j // 2
             local_a[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_a, a, root=0)
+        comm.Reduce(local_a.get(), a_cpu, root=0)  # a_cpu
+        a = cp.asarray(a_cpu)
         for j in range(2 * k + 4):
             jj = j // 2
             local_f[j] = dot(
                 Ap[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_f, f, root=0)
+        comm.Reduce(local_f.get(), f, root=0)  # f_cpu
+        f = cp.asarray(f_cpu)  # f_cpu
         for j in range(2 * k + 2):
             jj = j // 2
             local_c[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_c, c, root=0)
+        comm.Reduce(local_c.get(), c, root=0) # c_cpu
+        c = cp.asarray(c_cpu)  # f_cpu
 
         # CGでの1反復
         # 解の更新

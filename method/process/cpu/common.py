@@ -92,7 +92,7 @@ def mpi_matvec(local_A, x, Ax, local_Ax, comm):
         comm (): [MPI.COMM_WORLD()]
 
     Returns:
-        [np.ndarray]: [演算結果]
+        Ax [np.ndarray]: [演算結果]
     """
     comm.Bcast(x, root=0)
     local_Ax = np.dot(local_A, x)
@@ -113,7 +113,7 @@ def mpi_vecvec(a, b, local_a, local_b, comm):
         comm (): [MPI.COMM_WORLD()]
 
     Returns:
-        [np.ndarray]: [演算結果]
+        ab [np.ndarray]: [演算結果]
     """
     ab = np.empty(1, np.float64)
     comm.Scatter(a, local_a, root=0)
