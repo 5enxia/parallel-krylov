@@ -42,7 +42,7 @@ def init_matvec(N, num_of_process, T=np.float64):
     """
     local_N = N // num_of_process
     local_A = cp.empty((local_N, N), T)
-    Ax = cp.empty(N, T)
+    Ax = np.empty(N, T)
     local_Ax = cp.empty(local_N, T)
     return local_N, local_A, Ax, local_Ax
 
@@ -86,14 +86,14 @@ def mpi_matvec(local_A, x, Ax, local_Ax, comm):
     returnを使わない場合は，Ax, local_Axには，対象の配列をいれる．
 
     Args:
-        local_A ([type]): [ローカル行列(local_N * N)]
-        x (np.ndarray): [ベクトル]
+        local_A (cp.ndarray): [ローカル行列(local_N * N)]
+        x (cp.ndarray): [ベクトル]
         Ax (np.ndarray): [A.dot(x)の結果を格納]
-        local_Ax (np.ndarray): [local_A.dot(x)の結果を格納]
+        local_Ax (cp.ndarray): [local_A.dot(x)の結果を格納]
         comm (): [MPI.COMM_WORLD()]
 
     Returns:
-        [np.ndarray]: [演算結果]
+        [cp.ndarray]: [演算結果]
     """
     x_cpu = x.get()
     comm.Bcast(x_cpu, root=0)
@@ -102,7 +102,7 @@ def mpi_matvec(local_A, x, Ax, local_Ax, comm):
     local_Ax = cp.dot(local_A, x)
 
     comm.Gather(local_Ax.get(), Ax, root=0)
-    return Ax
+    return cp.asarray(Ax)
 
 
 def mpi_vecvec(a, b, local_a, local_b, comm):
@@ -131,4 +131,4 @@ def mpi_vecvec(a, b, local_a, local_b, comm):
     local_ab = cp.dot(local_a, local_b)
 
     comm.Reduce(local_ab.get(), ab, root=0)
-    return ab
+    return cp.asarray(ab)
