@@ -1,23 +1,25 @@
-import sys
-
 import numpy as np
 import cupy as cp
 from cupy.linalg import norm
 from mpi4py import MPI
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.process.gpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
+from ..common import start, end
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def mrr(A, b, epsilon, T=np.float64):
-    # 初期化
+    # MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     num_of_process = comm.Get_size()
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    local_N, local_A, Ax, local_Ax = init_matvec(N, num_of_process, T)
+    # GPU
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+    num_of_gpu = cp.cuda.runtime.getDeviceCount()
+    cp.cuda.Device(rank % num_of_gpu).use()
+    # 共通初期化
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
     local_A_cpu = local_A.get()
     comm.Scatter(A, local_A_cpu, root=0)
@@ -62,23 +64,9 @@ def mrr(A, b, epsilon, T=np.float64):
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i
+    num_of_iter = i
     if rank == 0:
-        end(start_time, isConverged, num_of_iter, residual, residual_index)
-
-
-if __name__ == "__main__":
-    # GPU Memory Settings
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-
-    # Current GPU Settings
-    rank = MPI.COMM_WORLD.Get_rank()
-    num_of_gpu = cp.cuda.runtime.getDeviceCount()
-    cp.cuda.Device(rank % num_of_gpu).use
-
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    b = cp.asarray(b)
-    
-    mrr(A, b, epsilon, T)
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
+        return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+    else:
+        exit(0)

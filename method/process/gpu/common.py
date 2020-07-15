@@ -3,26 +3,46 @@ import cupy as cp
 from cupy.linalg import norm
 
 
-def init(A, b, T=cp.float64):
+def init(A, b, num_of_process, T=cp.float64):
     """[summary]
     クリロフ部分空間法に共通する変数を初期化して返す
 
     Args:
-        A ([type]): [description]
-        b ([type]): [description]
-        T ([type], optional): [description]. Defaults to np.float64.
+        A (np.ndarray): 係数行列
+        b (np.ndarray): 右辺ベクトル
+        num_of_process (int): MPIプロセス数
+        T (cp.float64, optional): 浮動小数精度. Defaults to np.float64.
 
     Returns:
-        [type]: [description]
+        A (np.ndarray): 係数行列(0パッディング)
+        b (cp.ndarray): 右辺ベクトル(0パッディング)
+        x (cp.ndarray): 初期解
+        b_norm (float): bのL2ノルム
+        N (int): パッディング後の次元数
+        local_N (int): ローカル行列の縦方向次元数
+        max_iter (int): 最大反復回数（パッディング前の次元数）
+        residual (cp.ndarray): 残差履歴
+        num_of_solution_updates (cp.ndarray): 残差更新回数履歴
     """
+    old_N = b.size
+    num_of_append = ((num_of_process - (old_N % num_of_process)) % num_of_process)
+    N = old_N + num_of_append
+    local_N = N // num_of_process
+
+    if num_of_append:
+        A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
+        A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
+        b = np.append(b, np.zeros(num_of_append))  # 0を追加
     x = cp.zeros(b.size, T)
+    b = cp.asarray(b)
     b_norm = norm(b)
+
     N = b.size
     max_iter = N  # * 2
     residual = cp.zeros(max_iter+1, T)
     num_of_solution_updates = cp.zeros(max_iter+1, cp.int)
     num_of_solution_updates[0] = 0
-    return x, b_norm, N, max_iter, residual, num_of_solution_updates
+    return A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates
 
 
 def init_matvec(N, num_of_process, T=np.float64):

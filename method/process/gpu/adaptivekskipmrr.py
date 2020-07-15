@@ -1,24 +1,26 @@
-import sys
-
 import numpy as np
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 from mpi4py import MPI
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.process.gpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
+from ..common import start, end
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
-    # 共通初期化
+    # MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     num_of_process = comm.Get_size()
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    local_N, local_A, Ax, local_Ax = init_matvec(N, num_of_process, T)
+    # GPU
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+    num_of_gpu = cp.cuda.runtime.getDeviceCount()
+    cp.cuda.Device(rank % num_of_gpu).use()
+    # 共通初期化
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
     local_A_cpu = local_A.get()
     comm.Scatter(A, local_A_cpu, root=0)
@@ -30,7 +32,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     beta = cp.empty(2*k + 2, T)
     beta[0] = 0
     delta = cp.empty(2*k + 1, T)
-    # root_cpu 
+    # root_cpu
     Ar_cpu = np.empty((k + 3, N), T)
     Ay_cpu = np.empty((k + 2, N), T)
     alpha_cpu = np.empty(2*k + 3, T)
@@ -44,6 +46,8 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
     # 初期kと現在のkの値の差
     dif = 0
+    k_history = cp.zeros(max_iter+1, cp.int)
+    k_history[0] = k
 
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
@@ -60,6 +64,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    k_history[1] = k
 
     # 反復計算
     for i in range(1, max_iter):
@@ -168,23 +173,9 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     else:
         isConverged = False
         
-    num_of_iter = i + 1
-    residual_index = i - dif
+    num_of_iter = i
     if rank == 0:
-        end(start_time, isConverged, num_of_iter, residual, residual_index, final_k=k)
-
-
-if __name__ == "__main__":
-    # GPU Memory Settings
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-
-    # Current GPU Settings
-    rank = MPI.COMM_WORLD.Get_rank()
-    num_of_gpu = cp.cuda.runtime.getDeviceCount()
-    cp.cuda.Device(rank % num_of_gpu).use
-
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    b = cp.asarray(b)
-
-    adaptive_k_skip_mrr(A, b, epsilon, k, T)
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k)
+        return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()
+    else:
+        exit(0)

@@ -33,8 +33,8 @@ def init(A, b, num_of_process, T=np.float64):
         A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
         b = np.append(b, np.zeros(num_of_append))  # 0を追加
     x = np.zeros(N, T)
-
     b_norm = norm(b)
+
     max_iter = old_N  # * 2
     residual = np.zeros(max_iter+1, T)
     num_of_solution_updates = np.zeros(max_iter+1, np.int)
