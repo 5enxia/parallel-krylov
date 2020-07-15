@@ -1,12 +1,8 @@
-import sys
-
 import numpy as np
 from numpy.linalg import norm
 from mpi4py import MPI
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
+    from .common import getConditionParams
     from krylov.method.process.cpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
 
 

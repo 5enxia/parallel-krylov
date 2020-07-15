@@ -1,6 +1,6 @@
 import time
 
-from krylov.method.common import _start, _end
+from ..common import _start, _end
 
 
 def start(method_name='', k=None):
