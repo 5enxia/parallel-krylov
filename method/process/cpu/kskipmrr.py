@@ -3,8 +3,8 @@ from numpy import dot
 from numpy.linalg import norm
 from mpi4py import MPI
 
-from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 from ..common import start, end
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def k_skip_mrr(A, b, epsilon, k, T=np.float64):
@@ -12,8 +12,8 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     num_of_process = comm.Get_size()
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    local_N, local_A, Ax, local_Ax = init_matvec(N, num_of_process, T)
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process,T)
+    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
     comm.Scatter(A, local_A, root=0)
     # root
@@ -123,3 +123,5 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     if rank == 0:
         elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
         return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+    else:
+        exit(0)
