@@ -1,10 +1,3 @@
-import json
-
-import numpy as np
-
-from krylov.util import toepliz_matrix_generator
-
-
 def _start(method_name='', k=None):
     """[summary]
 
@@ -44,17 +37,3 @@ def _end(
         if final_k:
             print(f'final k:\t{final_k}')
     print('# ===================================== #')
-
-
-def getConditionParams(filename: str):
-    with open(filename) as f:
-        params = json.load(f)
-    f.close()
-    T = np.float64
-    epsilon = params['epsilon']
-    N = params['N']
-    diag = params['diag']
-    sub_diag = params['sub_diag']
-    A, b = toepliz_matrix_generator.generate(N, diag, sub_diag, T)
-    k = params['k']
-    return A, b, epsilon, k, T
