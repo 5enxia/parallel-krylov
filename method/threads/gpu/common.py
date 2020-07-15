@@ -11,6 +11,7 @@ def init(A, b, T=cp.float64):
         T (np.dtype, optional): [description]. Defaults to cp.float64.
 
     Returns:
+        A (cp.ndarray): [係数行列]
         b (cp.ndarray): [厳密解]
         x [cp.zeros]: [初期解]
         b_norm [cp.float64]: [bのL2ノルム]
@@ -29,5 +30,5 @@ def init(A, b, T=cp.float64):
     residual = cp.zeros(max_iter + 1, T)
     num_of_solution_updates = cp.zeros(max_iter + 1, cp.int)
     num_of_solution_updates[0] = 0
-    
-    return cp.asarray(b), x, b_norm, N, max_iter, residual, num_of_solution_updates
+
+    return cp.asarray(A), cp.asarray(b), x, b_norm, N, max_iter, residual, num_of_solution_updates
