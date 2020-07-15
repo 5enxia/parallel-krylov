@@ -85,7 +85,7 @@ def k_skip_cg(A, b, epsilon, k, T=cp.float64):
     else:
         isConverged = False
 
-    num_of_iter = i + 1
+    num_of_iter = i
     elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
 
     return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
