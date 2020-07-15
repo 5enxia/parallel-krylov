@@ -60,8 +60,8 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
             Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 2):
             Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ax, comm)
-        Ar_cpu = Ar.get() # Ar_cpu
-        Ap_cpu = Ap.get() # Ap_cpu
+        Ar_cpu = Ar.get()
+        Ap_cpu = Ap.get()
         comm.Bcast(Ar_cpu)
         comm.Bcast(Ap_cpu)
         Ar = cp.asarray(Ar_cpu)
@@ -72,24 +72,24 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_a.get(), a_cpu, root=0)  # a_cpu
-        a = cp.asarray(a_cpu)  # a_cpu
+        comm.Reduce(local_a.get(), a_cpu, root=0)
+        a = cp.asarray(a_cpu)
         for j in range(2 * k + 4):
             jj = j // 2
             local_f[j] = dot(
                 Ap[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_f.get(), f_cpu, root=0)  # f_cpu
-        f = cp.asarray(f_cpu)  # f_cpu
+        comm.Reduce(local_f.get(), f_cpu, root=0)
+        f = cp.asarray(f_cpu)
         for j in range(2 * k + 2):
             jj = j // 2
             local_c[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_c.get(), c_cpu, root=0) # c_cpu
-        c = cp.asarray(c_cpu)  # f_cpu
+        comm.Reduce(local_c.get(), c_cpu, root=0)
+        c = cp.asarray(c_cpu)
 
         # CGでの1反復
         # 解の更新
