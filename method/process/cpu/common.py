@@ -1,8 +1,5 @@
 import numpy as np
 from numpy.linalg import norm
-from mpi4py import MPI
-
-from krylov.method.common import _start, _end
 
 
 def init(A, b, T=np.float64):
@@ -64,23 +61,6 @@ def init_vecvec(local_N, T=np.float64):
     local_a = np.empty(local_N, T)
     local_b = np.empty(local_N, T)
     return local_a, local_b
-
-
-def start(method_name='', k=None):
-    _start(method_name, k)
-    return MPI.Wtime()
-
-
-def end(
-    start_time, isConverged, num_of_iter, residual, residual_index,
-    final_k=None
-):
-    elapsed_time = MPI.Wtime() - start_time
-    _end(
-        elapsed_time, isConverged, num_of_iter, residual, residual_index,
-        final_k
-    )
-    return elapsed_time
 
 
 def mpi_matvec(local_A, x, Ax, local_Ax, comm):

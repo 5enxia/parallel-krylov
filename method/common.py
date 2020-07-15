@@ -24,7 +24,6 @@ def _end(
         isConverged (bool): [収束判定]
         num_of_iter (int): [反復回数(k段飛ばしの場合はk+1反復毎に1回実行)]
         residual ([type]): [残差履歴]
-        residual_index ([type]): [収束した時の残差のインデックス]
         final_k ([type], optional): [Adaptiveを実行した際の最終的なk]. Defaults to None.
     """
     print(f'time:\t\t{ elapsed_time } s')
