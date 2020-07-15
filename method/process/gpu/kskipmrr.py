@@ -35,6 +35,7 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     Ay_cpu = np.empty((k + 2, N), T)
     alpha_cpu = np.empty(2*k + 3, T)
     beta_cpu = np.empty(2*k + 2, T)
+    beta_cpu[0] = 0
     delta_cpu = np.empty(2*k + 1, T)
     # local
     local_alpha = cp.empty(2*k + 3, T)
@@ -91,7 +92,7 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
         comm.Reduce(local_beta.get(), beta_cpu, root=0)
-        beta = cp.asarray(alpha_cpu)
+        beta = cp.asarray(beta_cpu)
         for j in range(2 * k + 1):
             jj = j // 2
             local_delta[j] = dot(
@@ -156,5 +157,5 @@ if __name__ == "__main__":
 
     A, b, epsilon, k, T = getConditionParams('condition.json')
     b = cp.asarray(b)
-    
+
     k_skip_mrr(A, b, epsilon, k, T)
