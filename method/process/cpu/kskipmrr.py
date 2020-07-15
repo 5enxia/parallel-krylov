@@ -28,8 +28,6 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     beta[0] = 0
     delta = np.empty(2*k + 1, T)
     # local
-    local_Ar = np.empty((k + 3, local_N), T)
-    local_Ay = np.empty((k + 2, local_N), T)
     local_alpha = np.empty(2*k + 3, T)
     local_beta = np.empty(2*k + 2, T)
     local_beta[0] = 0
@@ -61,9 +59,9 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
         # 事前計算
         for j in range(1, k + 2):
-            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ar, comm)
+            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 1):
-            Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ay, comm)
+            Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         comm.Bcast(Ar)
         comm.Bcast(Ay)
         for j in range(2*k + 3):
