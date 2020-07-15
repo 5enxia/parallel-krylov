@@ -76,7 +76,7 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
         comm.Bcast(Ar_cpu)
         comm.Bcast(Ay_cpu)
         Ar = cp.asarray(Ar_cpu)
-        Ap = cp.asarray(Ap_cpu)
+        Ay = cp.asarray(Ay_cpu)
         for j in range(2*k + 3):
             jj = j // 2
             local_alpha[j] = dot(

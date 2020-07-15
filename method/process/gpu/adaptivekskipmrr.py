@@ -38,9 +38,9 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     beta_cpu[0] = 0
     delta_cpu = np.empty(2*k + 1, T)
     # local
-    local_alpha = np.empty(2*k + 3, T)
-    local_beta = np.empty(2*k + 2, T)
-    local_delta = np.empty(2*k + 1, T)
+    local_alpha = cp.empty(2*k + 3, T)
+    local_beta = cp.empty(2*k + 2, T)
+    local_delta = cp.empty(2*k + 1, T)
 
     # 初期kと現在のkの値の差
     dif = 0
@@ -103,7 +103,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
         comm.Bcast(Ar_cpu)
         comm.Bcast(Ay_cpu)
         Ar = cp.asarray(Ar_cpu)
-        Ap = cp.asarray(Ap_cpu)
+        Ay = cp.asarray(Ay_cpu)
         for j in range(2*k + 3):
             jj = j // 2
             local_alpha[j] = dot(
