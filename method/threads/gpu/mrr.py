@@ -1,19 +1,27 @@
-import sys
-
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.threads.common import start, end
-    from krylov.method.threads.gpu.common import init
+from ..common import start, end
+from .common import init
 
 
 def mrr(A, b, epsilon, T=cp.float64):
+    """[summary]
+
+    Args:
+        A (np.ndarray): 係数行列A
+        b (np.ndarray): bベクトル
+        epsilon (float): 収束判定子
+        T ([type], optional): 浮動小数精度 Defaults to np.float64.
+
+    Returns:
+        float: 経過時間
+        np.ndarray: 残差更新履歴
+        np.ndarray: 残差履歴
+    """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期残差
     r = b - dot(A, x)
@@ -52,17 +60,7 @@ def mrr(A, b, epsilon, T=cp.float64):
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i
-    end(start_time, isConverged, num_of_iter, residual, residual_index)
+    num_of_iter = i
+    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
 
-
-if __name__ == "__main__":
-    # GPU Memory Settings
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    A, b = cp.asarray(A), cp.asarray(b)
-
-    mrr(A, b, epsilon, T)
+    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
