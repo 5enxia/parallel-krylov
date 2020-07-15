@@ -22,7 +22,7 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
         np.ndarray: 残差履歴
     """
     # 初期化
-    b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = np.empty((k+3, N), T)
     Ay = np.empty((k + 2, N), T)
     alpha = np.empty(2 * k + 3, T)

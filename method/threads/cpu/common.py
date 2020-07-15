@@ -11,7 +11,6 @@ def init(A, b, T=np.float64):
         T ([type], optional): [description]. Defaults to np.float64.
 
     Returns:
-        b ([type]): [厳密解]
         x [np.zeros]: [初期解]
         b_norm [float64]: [bのL2ノルム]
         N [int]: [次元数]
@@ -27,4 +26,4 @@ def init(A, b, T=np.float64):
     num_of_solution_updates = np.zeros(max_iter + 1, np.int)
     num_of_solution_updates[0] = 0
     
-    return b, x, b_norm, N, max_iter, residual, num_of_solution_updates
+    return x, b_norm, N, max_iter, residual, num_of_solution_updates

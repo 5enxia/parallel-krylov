@@ -23,7 +23,7 @@ def k_skip_cg(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float64
         np.ndarray: 残差履歴
     """
     # 初期化
-    b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = np.zeros((k + 2, N), T)
     Ap = np.zeros((k + 3, N), T)
     a = np.zeros(2 * k + 2, T)
