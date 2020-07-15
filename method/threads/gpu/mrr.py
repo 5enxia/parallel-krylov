@@ -55,7 +55,7 @@ def mrr(A, b, epsilon, T=cp.float64):
         z = eta * z - zeta * r
         r -= y
         x -= z
-        num_of_solution_updates[i] = i + 1
+        num_of_solution_updates[i + 1] = i + 1
 
     else:
         isConverged = False
