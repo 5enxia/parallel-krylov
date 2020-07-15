@@ -1,4 +1,4 @@
-import time
+from mpi4py import MPI
 
 from ..common import _start, _end
 
@@ -13,7 +13,7 @@ def start(method_name='', k=None):
         float: 計算開始時刻
     """
     _start(method_name, k)
-    return time.perf_counter()
+    return MPI.Wtime()
 
 
 def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
@@ -30,6 +30,6 @@ def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
     Returns:
         float: 経過時間
     """
-    elapsed_time = time.perf_counter() - start_time
+    elapsed_time = MPI.Wtime() - start_time
     _end(elapsed_time, isConverged, num_of_iter, final_residual, final_k)
     return elapsed_time

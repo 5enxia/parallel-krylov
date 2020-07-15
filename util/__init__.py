@@ -1,5 +1,5 @@
 __all__ = [
-    'loader', 
+    'loader',
     'precondition',
-    'toepliz_matrix_generator'
+    'toeplizmatrixgenerator'
  ]
