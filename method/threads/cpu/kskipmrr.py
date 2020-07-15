@@ -1,19 +1,28 @@
-import sys
-
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.threads.common import start, end
-    from krylov.method.threads.cpu.common import init
+from ..common import start, end
+from .common import init
 
 
-def k_skip_mrr(A, b, epsilon, k, T=np.float64):
+def k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float64):
+    """[summary]
+
+    Args:
+        A (np.ndarray): 係数行列A
+        b (np.ndarray): bベクトル
+        epsilon (float): 収束判定子
+        k (int): k
+        T ([type], optional): 浮動小数精度 Defaults to np.float64.
+
+    Returns:
+        float: 経過時間
+        np.ndarray: 残差更新履歴
+        np.ndarray: 残差履歴
+    """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = np.empty((k + 3, N), T)
     Ay = np.empty((k + 2, N), T)
     alpha = np.empty(2 * k + 3, T)
@@ -95,11 +104,7 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i
-    end(start_time, isConverged, num_of_iter, residual, residual_index)
-
-
-if __name__ == "__main__":
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    k_skip_mrr(A, b, epsilon, k, T)
+    num_of_iter = i
+    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
+    
+    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]

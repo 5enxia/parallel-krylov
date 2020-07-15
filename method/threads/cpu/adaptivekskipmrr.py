@@ -1,19 +1,28 @@
-import sys
-
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.threads.common import start, end
-    from krylov.method.threads.cpu.common import init
+from ..common import start, end
+from .common import init
 
 
-def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
+def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float64):
+    """[summary]
+
+    Args:
+        A (np.ndarray): 係数行列A
+        b (np.ndarray): bベクトル
+        epsilon (float): 収束判定子
+        k (int): k
+        T ([type], optional): 浮動小数精度 Defaults to np.float64.
+
+    Returns:
+        float: 経過時間
+        np.ndarray: 残差更新履歴
+        np.ndarray: 残差履歴
+    """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = np.empty((k+3, N), T)
     Ay = np.empty((k + 2, N), T)
     alpha = np.empty(2 * k + 3, T)
@@ -21,6 +30,8 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     delta = np.empty(2 * k + 1, T)
     beta[0] = 0
     dif = 0
+    k_history = np.zeros(N+1, np.int)
+    k_history[0] = k
 
     # 初期残差
     Ar[0] = b - dot(A, x)
@@ -36,6 +47,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    k_history[1] = k
 
     # 反復計算
     for i in range(1, max_iter):
@@ -115,15 +127,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             x -= z
 
         num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
+        k_history[i + 1 - dif] = k
 
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i - dif
-    end(start_time, isConverged, num_of_iter, residual, residual_index, final_k=k)
-
-
-if __name__ == "__main__":
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    adaptive_k_skip_mrr(A, b, epsilon, k, T)
+    num_of_iter = i - dif
+    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k)
+    
+    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1], k_history[:num_of_iter+1]

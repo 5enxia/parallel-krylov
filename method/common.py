@@ -6,7 +6,7 @@ def _start(method_name='', k=None):
         k ([int], optional): [kの値]. Defaults to None.
     """
     print('# ============== INFO ================= #')
-    print(f'Method:\t{ method_name }')
+    print(f'Method:\t\t{ method_name }')
     print(f'initial_k:\t{ k }')
 
 
@@ -14,8 +14,7 @@ def _end(
     elapsed_time: float,
     isConverged: bool,
     num_of_iter: int,
-    residual,
-    residual_index,
+    final_residual,
     final_k=None
 ):
     """[summary]
@@ -28,12 +27,12 @@ def _end(
         residual_index ([type]): [収束した時の残差のインデックス]
         final_k ([type], optional): [Adaptiveを実行した際の最終的なk]. Defaults to None.
     """
-    print(f'time:\t{ elapsed_time } s')
+    print(f'time:\t\t{ elapsed_time } s')
     status = 'converged' if isConverged else 'diverged'
-    print(f'status:\t{ status }')
+    print(f'status:\t\t{ status }')
     if isConverged:
         print(f'iteration:\t{ num_of_iter } times')
-        print(f'residual:\t{residual[residual_index]}')
+        print(f'final residual:\t{ final_residual }')
         if final_k:
             print(f'final k:\t{final_k}')
     print('# ===================================== #')
