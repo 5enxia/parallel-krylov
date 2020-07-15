@@ -21,7 +21,7 @@ def cg(A, b, epsilon, T=cp.float64):
         np.ndarray: 残差履歴
     """
     # 初期化
-    b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期残差
     r = b - dot(A, x)
