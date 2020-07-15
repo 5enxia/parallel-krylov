@@ -9,7 +9,7 @@ from mpi4py import MPI
 if __name__ == "__main__":
     sys.path.append('../../../../')
     from krylov.method.common import getConditionParams
-    from krylov.method.process.cpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
+    from krylov.method.process.gpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
 
 
 def k_skip_cg(A, b, epsilon, k, T=np.float64):
@@ -23,19 +23,23 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
     local_A_cpu = local_A.get()
     comm.Scatter(A, local_A_cpu, root=0)
     local_A = cp.asarray(local_A_cpu)
-    # root
+    # root_gpu
     Ar = cp.zeros((k + 2, N), T)
     Ap = cp.zeros((k + 3, N), T)
     a = cp.zeros(2*k + 2, T)
     f = cp.zeros(2*k + 4, T)
     c = cp.zeros(2*k + 2, T)
-    # local
-    local_Ar = cp.zeros((k + 2, local_N), T)
-    local_Ap = cp.zeros((k + 3, local_N), T)
+    # root_cpu
+    Ar_cpu = np.zeros((k + 2, N), T)
+    Ap_cpu = np.zeros((k + 3, N), T)
+    a_cpu = np.zeros(2*k + 2, T)
+    f_cpu = np.zeros(2*k + 4, T)
+    c_cpu = np.zeros(2*k + 2, T)
+    # local_gpu
     local_a = cp.zeros(2*k + 2, T)
     local_f = cp.zeros(2*k + 4, T)
     local_c = cp.zeros(2*k + 2, T)
-
+    
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
     Ap[0] = Ar[0]
@@ -53,9 +57,9 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
 
         # 事前計算
         for j in range(1, k + 1):
-            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ar, comm)
+            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 2):
-            Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ap, comm)
+            Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ax, comm)
         Ar_cpu = Ar.get() # Ar_cpu
         Ap_cpu = Ap.get() # Ap_cpu
         comm.Bcast(Ar_cpu)
@@ -69,14 +73,14 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
         comm.Reduce(local_a.get(), a_cpu, root=0)  # a_cpu
-        a = cp.asarray(a_cpu)
+        a = cp.asarray(a_cpu)  # a_cpu
         for j in range(2 * k + 4):
             jj = j // 2
             local_f[j] = dot(
                 Ap[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_f.get(), f, root=0)  # f_cpu
+        comm.Reduce(local_f.get(), f_cpu, root=0)  # f_cpu
         f = cp.asarray(f_cpu)  # f_cpu
         for j in range(2 * k + 2):
             jj = j // 2
@@ -84,7 +88,7 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_c.get(), c, root=0) # c_cpu
+        comm.Reduce(local_c.get(), c_cpu, root=0) # c_cpu
         c = cp.asarray(c_cpu)  # f_cpu
 
         # CGでの1反復
@@ -124,5 +128,16 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
 
 
 if __name__ == "__main__":
+    # GPU Memory Settings
+    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
+    cp.cuda.set_allocator(pool.malloc)
+
+    # Current GPU Settings
+    rank = MPI.COMM_WORLD.Get_rank()
+    num_of_gpu = cp.cuda.runtime.getDeviceCount()
+    cp.cuda.Device(rank % num_of_gpu).use
+
     A, b, epsilon, k, T = getConditionParams('condition.json')
+    b = cp.asarray(b)
+
     k_skip_cg(A, b, epsilon, k, T)
