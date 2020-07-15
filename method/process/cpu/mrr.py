@@ -1,13 +1,9 @@
-import sys
-
 import numpy as np
 from numpy.linalg import norm
 from mpi4py import MPI
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.process.cpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
+from ..common import start, end
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def mrr(A, b, epsilon, T=np.float64):
@@ -55,16 +51,11 @@ def mrr(A, b, epsilon, T=np.float64):
         z = eta * z - zeta * r
         r -= y
         x -= z
-        num_of_solution_updates[i] = i + 1
+        num_of_solution_updates[i + 1] = i + 1
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i
+    num_of_iter = i
     if rank == 0:
-        end(start_time, isConverged, num_of_iter, residual, residual_index)
-
-
-if __name__ == "__main__":
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    mrr(A, b, epsilon, T)
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
+        return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]

@@ -1,14 +1,10 @@
-import sys
-
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 from mpi4py import MPI
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.process.cpu.common import init, init_matvec, init_vecvec, start, end, mpi_matvec, mpi_vecvec
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from ..common import start, end
 
 
 def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
@@ -32,7 +28,10 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     local_beta = np.empty(2*k + 2, T)
     local_beta[0] = 0
     local_delta = np.empty(2*k + 1, T)
+    
     dif = 0
+    k_history = np.zeros(max_iter+1, np.int)
+    k_history[0] = k
 
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
@@ -49,6 +48,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    k_history[1] = k
 
     # 反復計算
     for i in range(1, max_iter):
@@ -146,16 +146,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             x -= z
 
         num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
+        k_history[i + 1 - dif] = k
 
     else:
         isConverged = False
-        
-    num_of_iter = i + 1
-    residual_index = i - dif
+
+    num_of_iter = i
     if rank == 0:
-        end(start_time, isConverged, num_of_iter, residual, residual_index, final_k=k)
-
-
-if __name__ == "__main__":
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    adaptive_k_skip_mrr(A, b, epsilon, k, T)
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
+        return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1], k_history[:num_of_iter+1]
