@@ -127,11 +127,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             x -= z
 
         num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
+        k_history[i + 1 - dif] = k
 
     else:
         isConverged = False
 
-    num_of_iter = i
+    num_of_iter = i - dif
     elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k) 
 
     return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()

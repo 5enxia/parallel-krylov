@@ -22,7 +22,7 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
         np.ndarray: 残差履歴
     """
     # 初期化
-    A, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = cp.empty((k + 3, N), T)
     Ay = cp.empty((k + 2, N), T)
     alpha = cp.empty(2 * k + 3, T)
