@@ -13,6 +13,7 @@ def k_skip_cg(A, b, epsilon, k, T=cp.float64):
         A (np.ndarray): 係数行列A
         b (np.ndarray): bベクトル
         epsilon (float): 収束判定子
+        k (int): k
         T ([type], optional): 浮動小数精度 Defaults to np.float64.
 
     Returns:

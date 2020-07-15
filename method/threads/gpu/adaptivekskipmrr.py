@@ -1,19 +1,28 @@
-import sys
-
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 
-if __name__ == "__main__":
-    sys.path.append('../../../../')
-    from krylov.method.common import getConditionParams
-    from krylov.method.threads.common import start, end
-    from krylov.method.threads.gpu.common import init
+from ..common import start, end
+from .common import init
 
 
 def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
+    """[summary]
+
+    Args:
+        A (np.ndarray): 係数行列A
+        b (np.ndarray): bベクトル
+        epsilon (float): 収束判定子
+        k (int): k
+        T ([type], optional): 浮動小数精度 Defaults to np.float64.
+
+    Returns:
+        float: 経過時間
+        np.ndarray: 残差更新履歴
+        np.ndarray: 残差履歴
+    """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
     Ar = cp.empty((k+3, N), T)
     Ay = cp.empty((k + 2, N), T)
     alpha = cp.empty(2 * k + 3, T)
@@ -21,6 +30,8 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
     dif = 0
+    k_history = cp.zeros(N+1, cp.int)
+    k_history[0] = k
 
     # 初期残差
     Ar[0] = b - dot(A, x)
@@ -36,6 +47,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    k_history[1] = k
 
     # 反復計算
     for i in range(1, max_iter):
@@ -119,17 +131,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     else:
         isConverged = False
 
-    num_of_iter = i + 1
-    residual_index = i - dif
-    end(start_time, isConverged, num_of_iter, residual, residual_index, final_k=k)
+    num_of_iter = i
+    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k) 
 
-
-if __name__ == "__main__":
-    # GPU Memory Settings
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-
-    A, b, epsilon, k, T = getConditionParams('condition.json')
-    A, b = cp.asarray(A), cp.asarray(b)
-
-    adaptive_k_skip_mrr(A, b, epsilon, k, T)
+    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()
