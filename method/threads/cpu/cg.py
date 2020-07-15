@@ -10,7 +10,7 @@ def cg(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
     """[summary]
 
     Args:
-        A (np.ndarray): 係数行列A 
+        A (np.ndarray): 係数行列A
         b (np.ndarray): bベクトル
         epsilon (float): 収束判定子
         T ([type], optional): 浮動小数精度 Defaults to np.float64.

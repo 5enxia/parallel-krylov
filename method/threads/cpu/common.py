@@ -26,4 +26,5 @@ def init(A, b, T=np.float64):
     residual = np.zeros(max_iter + 1, T)
     num_of_solution_updates = np.zeros(max_iter + 1, np.int)
     num_of_solution_updates[0] = 0
+    
     return b, x, b_norm, N, max_iter, residual, num_of_solution_updates
