@@ -35,7 +35,7 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
     a_cpu = np.zeros(2*k + 2, T)
     f_cpu = np.zeros(2*k + 4, T)
     c_cpu = np.zeros(2*k + 2, T)
-    # local_gpu
+    # local
     local_a = cp.zeros(2*k + 2, T)
     local_f = cp.zeros(2*k + 4, T)
     local_c = cp.zeros(2*k + 2, T)
