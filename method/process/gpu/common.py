@@ -33,19 +33,19 @@ def init(A, b, num_of_process, T=cp.float64):
         A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
         A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
         b = np.append(b, np.zeros(num_of_append))  # 0を追加
-    x = cp.zeros(b.size, T)
+    x = cp.zeros(N, cp.float64)
     b = cp.asarray(b)
     b_norm = norm(b)
 
     N = b.size
     max_iter = N  # * 2
-    residual = cp.zeros(max_iter+1, T)
+    residual = cp.zeros(max_iter+1, cp.float64)
     num_of_solution_updates = cp.zeros(max_iter+1, cp.int)
     num_of_solution_updates[0] = 0
     return A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates
 
 
-def init_matvec(N, num_of_process, T=np.float64):
+def init_matvec(N, local_N, T=cp.float64):
     """[summary]
     mpi_matvecを実行する際に必要なローカル変数を初期化して返す
 
@@ -57,11 +57,10 @@ def init_matvec(N, num_of_process, T=np.float64):
     Returns:
         [type]: [description]
     """
-    local_N = N // num_of_process
-    local_A = cp.empty((local_N, N), T)
-    Ax = np.empty(N, T)
-    local_Ax = cp.empty(local_N, T)
-    return local_N, local_A, Ax, local_Ax
+    local_A = cp.empty((local_N, N), cp.float64)
+    Ax = np.empty(N, cp.float64)
+    local_Ax = cp.empty(local_N, cp.float64)
+    return local_A, Ax, local_Ax
 
 
 def init_vecvec(local_N, T=cp.float64):
@@ -75,8 +74,8 @@ def init_vecvec(local_N, T=cp.float64):
     Returns:
         [type]: [description]
     """
-    local_a = cp.empty(local_N, T)
-    local_b = cp.empty(local_N, T)
+    local_a = cp.empty(local_N, cp.float64)
+    local_b = cp.empty(local_N, cp.float64)
     return local_a, local_b
 
 

@@ -56,7 +56,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='k-skip MrR', k=k)
+        start_time = start(method_name='adaptive k-skip MrR', k=k)
     Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
     zeta = mpi_vecvec(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec(Ar[1], Ar[1], local_a, local_b, comm)
     Ay[0] = zeta * Ar[1]
@@ -169,11 +169,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             x -= z
 
         num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
+        k_history[i + 1 - dif] = k
 
     else:
         isConverged = False
         
-    num_of_iter = i
+    num_of_iter = i - dif
     if rank == 0:
         elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k)
         return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()

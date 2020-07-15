@@ -5,7 +5,7 @@ from cupy.linalg import norm
 from mpi4py import MPI
 
 from ..common import start, end
-from .common import init, init_matvec, init_vecvec, mpi_matvec
+from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def k_skip_mrr(A, b, epsilon, k, T=np.float64):

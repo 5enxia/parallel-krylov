@@ -48,7 +48,7 @@ def cg(A, b, epsilon, T=cp.float64):
         r -= alpha * mpi_matvec(local_A, p, Ax, local_Ax, comm)
         beta = mpi_vecvec(r, r, local_a, local_b, comm) / mpi_vecvec(old_r, old_r, local_a, local_b, comm)
         p = r + beta * p
-        num_of_solution_updates[i] = i + 1
+        num_of_solution_updates[i + 1] = i + 1
 
     else:
         isConverged = False
