@@ -1,17 +1,14 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-from mpi4py import MPI
 
 from ..common import start, end
-from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from .common import init, init_mpi, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     # 共通初期化
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    num_of_process = comm.Get_size()
+    comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process,T)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
@@ -43,12 +40,14 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        isConverged = np.array([residual[i] < epsilon], dtype=bool)
+        residual[index] = norm(Ar[0]) / b_norm
+        isConverged = np.array([residual[index] < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
@@ -114,14 +113,14 @@ def k_skip_mrr(A, b, epsilon, k, T=np.float64):
             Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
             x -= z
 
-        num_of_solution_updates[i + 1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
 
-    num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-        return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+        elapsed_time = end(start_time, isConverged, i, residual[index])
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)

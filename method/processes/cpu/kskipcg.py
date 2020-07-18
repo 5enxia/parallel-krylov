@@ -1,17 +1,14 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-from mpi4py import MPI
 
 from ..common import start, end
-from .common import init, init_matvec, mpi_matvec
+from .common import init, init_mpi, init_matvec, mpi_matvec
 
 
 def k_skip_cg(A, b, epsilon, k, T=np.float64):
     # 共通初期化
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    num_of_process = comm.Get_size()
+    comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     comm.Scatter(A, local_A, root=0)
@@ -31,12 +28,14 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
     Ap[0] = Ar[0]
 
     # 反復計算
+    i = 0
+    index = 0
     if rank == 0:
         start_time = start(method_name='k-skip CG', k=k)
-    for i in range(max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        isConverged = np.array([residual[i] < epsilon], dtype=bool)
+        residual[index] = norm(Ar[0]) / b_norm
+        isConverged = np.array([residual[index] < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
@@ -95,14 +94,14 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
             Ap[0] = Ar[0] + beta * Ap[0]
             Ap[1] = mpi_matvec(local_A, Ap[0], Ax, local_Ax, comm)
 
-        num_of_solution_updates[i+1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
 
-    num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-        return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+        elapsed_time = end(start_time, isConverged, i, residual[index])
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)

@@ -1,8 +1,10 @@
 import numpy as np
-from numpy.linalg import norm
+from mpi4py import MPI
+
+from ..common import _init
 
 
-def init(A, b, num_of_process, T=np.float64):
+def init(A, b, num_of_process, k=0, T=np.float64):
     """[summary]
     クリロフ部分空間法に共通する変数を初期化して返す
 
@@ -23,23 +25,19 @@ def init(A, b, num_of_process, T=np.float64):
         residual (np.ndarray): 残差履歴
         num_of_solution_updates (np.ndarray): 残差更新回数履歴
     """
-    old_N = b.size
-    num_of_append = ((num_of_process - (old_N % num_of_process)) % num_of_process)
-    N = old_N + num_of_append
-    local_N = N // num_of_process
+    return _init(A, b, num_of_process, T)
 
-    if num_of_append:
-        A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
-        A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
-        b = np.append(b, np.zeros(num_of_append))  # 0を追加
-    x = np.zeros(N, T)
-    b_norm = norm(b)
 
-    max_iter = old_N  # * 2
-    residual = np.zeros(max_iter+1, T)
-    num_of_solution_updates = np.zeros(max_iter+1, np.int)
-    num_of_solution_updates[0] = 0
-    return A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates
+def init_mpi():
+    """[summary]
+
+    Returns:
+        [MPI.COMM_WORLD]: [MPI通信範囲]
+        [int]: [ランク]
+        [int]: [総プロセス数]
+    """
+    comm = MPI.COMM_WORLD
+    return comm, comm.Get_rank(), comm.Get_size()
 
 
 def init_matvec(N, local_N, T=np.float64):

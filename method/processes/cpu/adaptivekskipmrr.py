@@ -1,17 +1,14 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-from mpi4py import MPI
 
 from ..common import start, end
-from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from .common import init, init_mpi, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
 
 
 def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     # 共通初期化
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    num_of_process = comm.Get_size()
+    comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process,T)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
@@ -29,7 +26,6 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     local_beta[0] = 0
     local_delta = np.empty(2*k + 1, T)
     
-    dif = 0
     k_history = np.zeros(max_iter+1, np.int)
     k_history[0] = k
 
@@ -40,7 +36,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='k-skip MrR', k=k)
+        start_time = start(method_name='adaptive k-skip MrR', k=k)
     Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
     zeta = mpi_vecvec(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec(Ar[1], Ar[1], local_a, local_b, comm)
     Ay[0] = zeta * Ar[1]
@@ -49,9 +45,11 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     x -= z
     num_of_solution_updates[1] = 1
     k_history[1] = k
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
         # 残差減少判定
         isIncreaese = np.array([cur_residual > pre_residual], dtype=bool)
@@ -69,11 +67,10 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
             # kを下げて収束を安定化させる
             if k > 1:
-                dif += 1
                 k -= 1
         else:
             pre_residual = cur_residual
-            residual[i - dif] = cur_residual
+            residual[index] = cur_residual
             pre_x = x.copy()
             
         # 収束判定
@@ -145,15 +142,16 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
             x -= z
 
-        num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
-        k_history[i + 1 - dif] = k
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
+        k_history[index] = k
     else:
         isConverged = False
 
     num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-        return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1], k_history[:num_of_iter+1]
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[index], k)
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
     else:
         exit(0)
