@@ -1,5 +1,7 @@
 import time
 
+import numpy as np
+
 from ..common import _start, _end
 
 
@@ -33,3 +35,29 @@ def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
     elapsed_time = time.perf_counter() - start_time
     _end(elapsed_time, isConverged, num_of_iter, final_residual, final_k)
     return elapsed_time
+
+
+def _init(A, b, T=np.float64):
+    """[summary]
+
+    Args:
+        A ([np.ndarray]): [係数行列]
+        b ([np.nadrray]): [厳密解]
+        T ([type], optional): [description]. Defaults to np.float64.
+
+    Returns:
+        x [np.ndarray]: [初期解]
+        b_norm [float64]: [bのL2ノルム]
+        N [int]: [次元数]
+        max_iter [int]: [最大反復回数(N * 2)]
+        residual [np.ndarray]: [残差履歴]
+        num_of_solution_updates [np.ndarray]: [解の更新回数履歴]
+    """
+    x = np.zeros(b.size, T)
+    b_norm = np.linalg.norm(b)
+    N = b.size
+    max_iter = N * 2
+    residual = np.zeros(max_iter+1, T)
+    num_of_solution_updates = np.zeros(max_iter+1, np.int)
+    num_of_solution_updates[0] = 0
+    return x, b_norm, N, max_iter, residual, num_of_solution_updates

@@ -48,13 +48,16 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
     x -= z
     num_of_solution_updates[1] = 1
     k_history[1] = k
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
+
         # 残差減少判定
         if cur_residual > pre_residual:
-            # 残差と解を直前の状態に戻す
+            # 残差と解をk+1反復前の状態に戻す
             x = pre_x.copy()
             Ar[0] = b - dot(A, x)
             Ar[1] = dot(A, Ar[0])
@@ -63,14 +66,13 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
             z = -zeta * Ar[0]
             Ar[0] -= Ay[0]
             x -= z
-
-            # kを下げて収束を安定化させる
+            # kを1下げる
             if k > 1:
                 k -= 1
-                dif += 1
+                # dif += 1
         else:
             pre_residual = cur_residual
-            residual[i - dif] = cur_residual
+            residual[index] = cur_residual
             pre_x = x.copy()
 
         # 収束判定
@@ -104,7 +106,7 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
         x -= z
 
         # MrRでのk反復
-        for j in range(0, k):
+        for j in range(k):
             delta[0] = zeta ** 2 * alpha[2] + eta * zeta * beta[1]
             alpha[0] -= zeta * alpha[1]
             delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
@@ -126,13 +128,12 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
-        k_history[i + 1 - dif] = k
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
+        k_history[index] = k
     else:
         isConverged = False
 
-    num_of_iter = i - dif
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k)
-    
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1], k_history[:num_of_iter+1]
+    elapsed_time = end(start_time, isConverged, i, residual[index], k)
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]

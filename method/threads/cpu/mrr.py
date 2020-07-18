@@ -6,7 +6,7 @@ from ..common import start, end
 from .common import init
 
 
-def mrr(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
+def mrr(A, b, epsilon, T=np.float64):
     """[summary]
 
     Args:
@@ -21,7 +21,7 @@ def mrr(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
         np.ndarray: 残差履歴
     """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T=T)
 
     # 初期残差
     r = b - dot(A, x)
@@ -36,9 +36,10 @@ def mrr(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
     r -= y
     x -= z
     num_of_solution_updates[1] = 1
+    i = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
         if residual[i] < epsilon:
@@ -56,10 +57,9 @@ def mrr(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
         r -= y
         x -= z
         num_of_solution_updates[i + 1] = i + 1
+        i += 1
     else:
         isConverged = False
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+    elapsed_time = end(start_time, isConverged, i, residual[i])
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

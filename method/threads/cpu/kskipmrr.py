@@ -43,12 +43,14 @@ def k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float6
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        if residual[i] < epsilon:
+        residual[index] = norm(Ar[0]) / b_norm
+        if residual[index] < epsilon:
             isConverged = True
             break
 
@@ -99,12 +101,11 @@ def k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float6
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        num_of_solution_updates[i + 1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-    
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+    elapsed_time = end(start_time, isConverged, i, residual[index])
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]

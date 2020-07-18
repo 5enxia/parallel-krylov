@@ -1,5 +1,6 @@
 import numpy as np
-from numpy.linalg import norm
+
+from ..common import _init
 
 
 def init(A, b, T=np.float64):
@@ -18,12 +19,4 @@ def init(A, b, T=np.float64):
         residual [np.zeros]: [残差履歴]
         num_of_solution_updates [np.zeros]: [解の更新回数履歴]
     """
-    x = np.zeros(b.size, T)
-    b_norm = norm(b)
-    N = b.size
-    max_iter = N  # * 2
-    residual = np.zeros(max_iter + 1, T)
-    num_of_solution_updates = np.zeros(max_iter + 1, np.int)
-    num_of_solution_updates[0] = 0
-    
-    return x, b_norm, N, max_iter, residual, num_of_solution_updates
+    return _init(A, b, T)

@@ -6,7 +6,7 @@ from ..common import start, end
 from .common import init
 
 
-def cg(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
+def cg(A, b, epsilon, T=np.float64):
     """[summary]
 
     Args:
@@ -21,15 +21,16 @@ def cg(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
         np.ndarray: 残差履歴
     """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T=T)
 
     # 初期残差
     r = b - dot(A, x)
     p = r.copy()
 
     # 反復計算
+    i = 0
     start_time = start(method_name='CG')
-    for i in range(max_iter):
+    while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
         if residual[i] < epsilon:
@@ -43,12 +44,10 @@ def cg(A: np.ndarray, b: np.ndarray, epsilon: float, T=np.float64):
         r -= alpha * dot(A, p)
         beta = dot(r, r) / dot(old_r, old_r)
         p = r + beta * p
-        num_of_solution_updates[i+1] = i + 1
-        
+        num_of_solution_updates[i+1] = i
+        i += 1
     else:
         isConverged = False
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1], residual[:num_of_iter+1]
+    elapsed_time = end(start_time, isConverged, i, residual[i]) 
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
