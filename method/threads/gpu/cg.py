@@ -27,8 +27,10 @@ def cg(A, b, epsilon, T=cp.float64):
     r = b - dot(A, x)
     p = r.copy()
 
+    # 反復計算
+    i = 0
     start_time = start(method_name='CG')
-    for i in range(max_iter):
+    while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
         if residual[i] < epsilon:
@@ -42,12 +44,10 @@ def cg(A, b, epsilon, T=cp.float64):
         r -= alpha * dot(A, p)
         beta = dot(r, r) / dot(old_r, old_r)
         p = r + beta * p
+        i += 1
         num_of_solution_updates[i+1] = i + 1
-
     else:
         isConverged = False
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+    elapsed_time = end(start_time, isConverged, i, residual[i]) 
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

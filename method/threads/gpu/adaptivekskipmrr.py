@@ -29,7 +29,6 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     beta = cp.empty(2 * k + 2, T)
     delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
-    dif = 0
     k_history = cp.zeros(N+1, cp.int)
     k_history[0] = k
 
@@ -48,9 +47,11 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     x -= z
     num_of_solution_updates[1] = 1
     k_history[1] = k
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
         # 残差減少判定
         if cur_residual > pre_residual:
@@ -63,14 +64,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             z = -zeta * Ar[0]
             Ar[0] -= Ay[0]
             x -= z
-
-            # kを下げて収束を安定化させる
+            # kを1下げる
             if k > 1:
                 k -= 1
-                dif += 1
         else:
             pre_residual = cur_residual
-            residual[i - dif] = cur_residual
+            residual[index] = cur_residual
             pre_x = x.copy()
 
         # 収束判定
@@ -126,13 +125,12 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
-        k_history[i + 1 - dif] = k
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
+        k_history[index] = k
     else:
         isConverged = False
 
-    num_of_iter = i - dif
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()
+    elapsed_time = end(start_time, isConverged, i, residual[index], k)
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]

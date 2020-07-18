@@ -43,9 +43,11 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         # 収束判定
         residual[i] = norm(Ar[0]) / b_norm
         if residual[i] < epsilon:
@@ -84,13 +86,11 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
             beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
             alpha[1] = -beta[1]
-
             for l in range(2, 2 * (k - j) + 1):
                 delta[l] = eta ** 2 * delta[l] + 2 * eta * zeta * beta[l+1] + zeta ** 2 * alpha[l + 2]
                 tau = eta * beta[l] + zeta * alpha[l + 1]
                 beta[l] = tau - delta[l]
                 alpha[l] -= tau + beta[l]
-
             # 解の更新
             sigma = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / sigma
@@ -101,12 +101,11 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        num_of_solution_updates[i + 1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+    elapsed_time = end(start_time, isConverged, i, residual[index])
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
