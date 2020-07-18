@@ -69,7 +69,6 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
             # kを1下げる
             if k > 1:
                 k -= 1
-                # dif += 1
         else:
             pre_residual = cur_residual
             residual[index] = cur_residual

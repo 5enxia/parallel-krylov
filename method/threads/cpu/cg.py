@@ -44,8 +44,8 @@ def cg(A, b, epsilon, T=np.float64):
         r -= alpha * dot(A, p)
         beta = dot(r, r) / dot(old_r, old_r)
         p = r + beta * p
-        num_of_solution_updates[i+1] = i
         i += 1
+        num_of_solution_updates[i] = i
     else:
         isConverged = False
 
