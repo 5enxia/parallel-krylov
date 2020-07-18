@@ -38,15 +38,15 @@ def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
 
 
 def _init(A, b, T=np.float64):
-    """[summary]
+    """init_cpu, init_gpuの共通処理
 
     Args:
         A ([np.ndarray]): [係数行列]
         b ([np.nadrray]): [厳密解]
-        T ([type], optional): [description]. Defaults to np.float64.
+        T ([dtype], optional): [description]. Defaults to np.float64.
 
     Returns:
-        x [np.ndarray]: [初期解]
+        x [np.ndarray]: [初期解(np.zeros)]
         b_norm [float64]: [bのL2ノルム]
         N [int]: [次元数]
         max_iter [int]: [最大反復回数(N * 2)]

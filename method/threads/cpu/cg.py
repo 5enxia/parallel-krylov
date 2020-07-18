@@ -21,7 +21,7 @@ def cg(A, b, epsilon, T=np.float64):
         np.ndarray: 残差履歴
     """
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T=T)
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期残差
     r = b - dot(A, x)
@@ -49,5 +49,5 @@ def cg(A, b, epsilon, T=np.float64):
     else:
         isConverged = False
 
-    elapsed_time = end(start_time, isConverged, i, residual[i]) 
+    elapsed_time = end(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
