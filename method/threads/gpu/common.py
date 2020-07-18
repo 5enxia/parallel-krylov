@@ -25,4 +25,4 @@ def init(A, b, T=cp.float64):
     cp.cuda.set_allocator(pool.malloc)
 
     x, b_norm, N, max_iter, residual, num_of_solution_updates = _init(A, b, T)
-    return cp.asarray(A), cp.asarray(b), cp.asrray(x), b_norm, N, max_iter, residual, num_of_solution_updates
+    return cp.asarray(A), cp.asarray(b), cp.asarray(x), b_norm, N, max_iter, residual, num_of_solution_updates
