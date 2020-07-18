@@ -6,7 +6,7 @@ from ..common import start, end
 from .common import init
 
 
-def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float64):
+def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     """[summary]
 
     Args:
@@ -29,7 +29,6 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
     beta = np.empty(2 * k + 2, T)
     delta = np.empty(2 * k + 1, T)
     beta[0] = 0
-    dif = 0
     k_history = np.zeros(N+1, np.int)
     k_history[0] = k
 
@@ -54,7 +53,6 @@ def adaptive_k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=
     # 反復計算
     while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
-
         # 残差減少判定
         if cur_residual > pre_residual:
             # 残差と解をk+1反復前の状態に戻す

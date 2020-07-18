@@ -6,7 +6,7 @@ from ..common import start, end
 from .common import init
 
 
-def k_skip_mrr(A: np.ndarray, b: np.ndarray, epsilon: float, k: int, T=np.float64):
+def k_skip_mrr(A, b, epsilon, k, T=np.float64):
     """[summary]
 
     Args:
