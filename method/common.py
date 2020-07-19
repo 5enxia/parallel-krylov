@@ -29,9 +29,8 @@ def _end(
     print(f'time:\t\t{ elapsed_time } s')
     status = 'converged' if isConverged else 'diverged'
     print(f'status:\t\t{ status }')
-    if isConverged:
-        print(f'iteration:\t{ num_of_iter } times')
-        print(f'final residual:\t{ final_residual }')
-        if final_k:
-            print(f'final k:\t{final_k}')
+    print(f'iteration:\t{ num_of_iter } times')
+    print(f'final residual:\t{ final_residual }')
+    if final_k:
+        print(f'final k:\t{final_k}')
     print('# ===================================== #')
