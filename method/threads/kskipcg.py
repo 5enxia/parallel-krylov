@@ -11,7 +11,7 @@ def kskipcg(A, b, epsilon, k, T, pu):
         import cupy as xp
         from cupy import dot
         from cupy.linalg import norm
-        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T, pu)
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
 
     # 初期化
     Ar = xp.zeros((k + 2, N), T)
