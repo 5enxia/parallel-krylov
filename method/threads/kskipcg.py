@@ -1,33 +1,22 @@
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-
-from ..common import start, end
-from .common import init
+from .common import start, end
 
 
-def k_skip_cg(A, b, epsilon, k, T=cp.float64):
-    """[summary]
+def _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, pu):
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
 
-    Args:
-        A (np.ndarray): 係数行列A
-        b (np.ndarray): bベクトル
-        epsilon (float): 収束判定子
-        k (int): k
-        T ([type], optional): 浮動小数精度 Defaults to np.float64.
-
-    Returns:
-        float: 経過時間
-        np.ndarray: 残差更新履歴
-        np.ndarray: 残差履歴
-    """
     # 初期化
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    Ar = cp.zeros((k + 2, N), T)
-    Ap = cp.zeros((k + 3, N), T)
-    a = cp.zeros(2 * k + 2, T)
-    f = cp.zeros(2 * k + 4, T)
-    c = cp.zeros(2 * k + 2, T)
+    Ar = xp.zeros((k + 2, N), T)
+    Ap = xp.zeros((k + 3, N), T)
+    a = xp.zeros(2 * k + 2, T)
+    f = xp.zeros(2 * k + 4, T)
+    c = xp.zeros(2 * k + 2, T)
 
     # 初期残差
     Ar[0] = b - dot(A, x)
@@ -39,8 +28,8 @@ def k_skip_cg(A, b, epsilon, k, T=cp.float64):
     start_time = start(method_name='k-skip CG', k=k)
     while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        if residual[i] < epsilon:
+        residual[index] = norm(Ar[0]) / b_norm
+        if residual[index] < epsilon:
             isConverged = True
             break
 
@@ -91,3 +80,15 @@ def k_skip_cg(A, b, epsilon, k, T=cp.float64):
 
     elapsed_time = end(start_time, isConverged, i, residual[index])
     return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
+
+
+def kskipcg_cpu(A, b, epsilon, k, T):
+    from .common import init_cpu
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init_cpu(A, b, T)
+    return _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'cpu')
+
+
+def kskipcg_gpu(A, b, epsilon, k, T):
+    from .common import init_gpu
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T)
+    return _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'gpu')

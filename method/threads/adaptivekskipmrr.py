@@ -1,35 +1,23 @@
-import numpy as np
-from numpy import dot
-from numpy.linalg import norm
-
-from ..common import start, end
-from .common import init
+from .common import start, end
 
 
-def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
-    """[summary]
-
-    Args:
-        A (np.ndarray): 係数行列A
-        b (np.ndarray): bベクトル
-        epsilon (float): 収束判定子
-        k (int): k
-        T ([type], optional): 浮動小数精度 Defaults to np.float64.
-
-    Returns:
-        float: 経過時間
-        np.ndarray: 残差更新履歴
-        np.ndarray: 残差履歴
-    """
+def _adaptivekskipmrr(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, pu):
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+    else:
+        import cupy as xp
+        from cupy import dot
+    
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    Ar = np.empty((k+3, N), T)
-    Ay = np.empty((k + 2, N), T)
-    alpha = np.empty(2 * k + 3, T)
-    beta = np.empty(2 * k + 2, T)
-    delta = np.empty(2 * k + 1, T)
+    Ar = xp.empty((k+3, N), T)
+    Ay = xp.empty((k + 2, N), T)
+    alpha = xp.empty(2 * k + 3, T)
+    beta = xp.empty(2 * k + 2, T)
+    delta = xp.empty(2 * k + 1, T)
     beta[0] = 0
-    k_history = np.zeros(N+1, np.int)
+    k_history = xp.zeros(N+1, xp.int)
     k_history[0] = k
 
     # 初期残差
@@ -55,7 +43,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
         cur_residual = norm(Ar[0]) / b_norm
         # 残差減少判定
         if cur_residual > pre_residual:
-            # 残差と解をk+1反復前の状態に戻す
+            # 残差と解を直前の状態に戻す
             x = pre_x.copy()
             Ar[0] = b - dot(A, x)
             Ar[1] = dot(A, Ar[0])
@@ -103,7 +91,7 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
         x -= z
 
         # MrRでのk反復
-        for j in range(k):
+        for j in range(0, k):
             delta[0] = zeta ** 2 * alpha[2] + eta * zeta * beta[1]
             alpha[0] -= zeta * alpha[1]
             delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
@@ -134,3 +122,15 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
     elapsed_time = end(start_time, isConverged, i, residual[index], k)
     return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
+
+
+def adaptivekskipmrr_cpu(A, b, epsilon, k, T):
+    from .common import init_cpu
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init_cpu(A, b, T)
+    return _adaptivekskipmrr(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'cpu')
+
+
+def adaptivekskipmrr_gpu(A, b, epsilon, k, T):
+    from .common import init_gpu
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T)
+    return _adaptivekskipmrr(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'gpu')

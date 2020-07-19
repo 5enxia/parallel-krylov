@@ -1,27 +1,13 @@
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-
-from ..common import start, end
-from .common import init
+from .common import start, end
 
 
-def mrr(A, b, epsilon, T=cp.float64):
-    """[summary]
-
-    Args:
-        A (np.ndarray): 係数行列A
-        b (np.ndarray): bベクトル
-        epsilon (float): 収束判定子
-        T ([type], optional): 浮動小数精度 Defaults to np.float64.
-
-    Returns:
-        float: 経過時間
-        np.ndarray: 残差更新履歴
-        np.ndarray: 残差履歴
-    """
-    # 初期化
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+def _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, pu):
+    if pu == 'cpu':
+        from numpy import dot
+        from numpy.linalg import norm
+    else:
+        from cupy import dot
+        from cupy.linalg import norm
 
     # 初期残差
     r = b - dot(A, x)
@@ -63,3 +49,15 @@ def mrr(A, b, epsilon, T=cp.float64):
 
     elapsed_time = end(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
+
+
+def mrr_cpu(A, b, epsilon, T):
+    from .common import init_cpu
+    x, b_norm, N, max_iter, residual, num_of_solution_updates = init_cpu(A, b, T)
+    return _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'cpu')
+
+
+def mrr_gpu(A, b, epsilon, T):
+    from .common import init_gpu
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T)
+    return _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'gpu')
