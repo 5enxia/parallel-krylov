@@ -26,6 +26,7 @@ def cg(A, b, epsilon, T=np.float64):
     # 初期残差
     r = b - dot(A, x)
     p = r.copy()
+    rr = dot(r, r)
 
     # 反復計算
     i = 0
@@ -38,11 +39,13 @@ def cg(A, b, epsilon, T=np.float64):
             break
 
         # 解の更新
-        alpha = dot(r, p) / dot(dot(p, A), p)
+        Ap = dot(A, p)
+        alpha = dot(r, p) / dot(p, Ap)
         x += alpha * p
-        old_r = r.copy()
-        r -= alpha * dot(A, p)
-        beta = dot(r, r) / dot(old_r, old_r)
+        r -= alpha * Ap
+        old_rr = rr.copy()
+        rr = dot(r ,r)
+        beta = rr / old_rr
         p = r + beta * p
         i += 1
         num_of_solution_updates[i] = i
