@@ -107,6 +107,7 @@ def kskipcg(A, b, epsilon, k, T, pu):
         num_of_solution_updates[index] = i
     else:
         isConverged = False
+        residual[index] = norm(Ar[0]) / b_norm
 
     if rank == 0:
         elapsed_time = end(start_time, isConverged, i, residual[index])

@@ -157,6 +157,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
         k_history[index] = k
     else:
         isConverged = False
+        residual[index] = norm(Ar[0]) / b_norm
 
     num_of_iter = i
     if rank == 0:
