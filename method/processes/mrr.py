@@ -1,14 +1,20 @@
 import numpy as np
-from numpy.linalg import norm
 
-from ..common import start, end
-from .common import init, init_mpi, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from .common import start, end, init, init_mpi
 
 
-def mrr(A, b, epsilon, T=np.float64):
-    # 共通初期化
+def mrr(A, b, epsilon, T, pu):
     comm, rank, num_of_process = init_mpi()
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    if pu == 'cpu':
+        from numpy.linalg import norm
+        from .common import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+    else:
+        from cupy.linalg import norm
+        from .common import init_gpu
+        init_gpu(rank)
+
+    # 共通初期化
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
     comm.Scatter(A, local_A, root=0)
@@ -21,7 +27,7 @@ def mrr(A, b, epsilon, T=np.float64):
     if rank == 0:
         start_time = start(method_name='MrR')
     Ar = mpi_matvec(local_A, r, Ax, local_Ax, comm)
-    zeta = mpi_vecvec(r, Ar, local_a, local_b, comm) / mpi_vecvec(Ar, Ar, local_a, local_b, comm)
+    zeta = mpi_vecvec2(r, Ar, local_a, local_b, comm) / mpi_vecvec1(Ar, local_a, comm)
     y = zeta * Ar
     z = -zeta * r
     r -= y
@@ -40,10 +46,10 @@ def mrr(A, b, epsilon, T=np.float64):
 
         # 解の更新
         Ar = mpi_matvec(local_A, r, Ax, local_Ax, comm)
-        nu = mpi_vecvec(y, Ar, local_a, local_b, comm)
-        gamma = nu / mpi_vecvec(y, y, local_a, local_b, comm)
+        nu = mpi_vecvec2(y, Ar, local_a, local_b, comm)
+        gamma = nu / mpi_vecvec1(y, local_a, comm)
         s = Ar - gamma * y
-        zeta = mpi_vecvec(r, s, local_a, local_b, comm) / mpi_vecvec(s, s, local_a, local_b, comm)
+        zeta = mpi_vecvec2(r, s, local_a, local_b, comm) / mpi_vecvec1(s, local_a, comm)
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
         z = eta * z - zeta * r

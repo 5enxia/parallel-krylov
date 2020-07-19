@@ -1,52 +1,41 @@
 import numpy as np
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-from mpi4py import MPI
 
-from ..common import start, end
-from .common import init, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from .common import start, end, init, init_mpi
 
 
-def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
-    # MPI
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    num_of_process = comm.Get_size()
-    # GPU
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-    num_of_gpu = cp.cuda.runtime.getDeviceCount()
-    cp.cuda.Device(rank % num_of_gpu).use()
+def adaptivekskipmrr(A, b, epsilon, k, T, pu):
+    comm, rank, num_of_process = init_mpi()
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        from .common import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        from .common import init_gpu
+        init_gpu(rank)
+
     # 共通初期化
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
-    local_A_cpu = local_A.get()
-    comm.Scatter(A, local_A_cpu, root=0)
-    local_A = cp.asarray(local_A_cpu)
-    # root_gpu
-    Ar = cp.empty((k + 3, N), T)
-    Ay = cp.empty((k + 2, N), T)
-    alpha = cp.empty(2*k + 3, T)
-    beta = cp.empty(2*k + 2, T)
+    comm.Scatter(A, local_A, root=0)
+    # root
+    Ar = xp.empty((k + 3, N), T)
+    Ay = xp.empty((k + 2, N), T)
+    alpha = xp.empty(2*k + 3, T)
+    beta = xp.empty(2*k + 2, T)
     beta[0] = 0
-    delta = cp.empty(2*k + 1, T)
-    # root_cpu
-    Ar_cpu = np.empty((k + 3, N), T)
-    Ay_cpu = np.empty((k + 2, N), T)
-    alpha_cpu = np.empty(2*k + 3, T)
-    beta_cpu = np.empty(2*k + 2, T)
-    beta_cpu[0] = 0
-    delta_cpu = np.empty(2*k + 1, T)
+    delta = xp.empty(2*k + 1, T)
     # local
-    local_alpha = cp.empty(2*k + 3, T)
-    local_beta = cp.empty(2*k + 2, T)
-    local_delta = cp.empty(2*k + 1, T)
-
-    # 初期kと現在のkの値の差
-    dif = 0
-    k_history = cp.zeros(max_iter+1, cp.int)
+    local_alpha = xp.empty(2*k + 3, T)
+    local_beta = xp.empty(2*k + 2, T)
+    local_beta[0] = 0
+    local_delta = xp.empty(2*k + 1, T)
+    
+    k_history = xp.zeros(max_iter+1, np.int)
     k_history[0] = k
 
     # 初期残差
@@ -58,26 +47,28 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
     if rank == 0:
         start_time = start(method_name='adaptive k-skip MrR', k=k)
     Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
-    zeta = mpi_vecvec(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec(Ar[1], Ar[1], local_a, local_b, comm)
+    zeta = mpi_vecvec2(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec1(Ar[1], local_a, comm)
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
     k_history[1] = k
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
         # 残差減少判定
-        isIncreaese = np.array([cur_residual.get() > pre_residual.get()], dtype=bool)
+        isIncreaese = np.array([cur_residual > pre_residual], dtype=bool)
         comm.Bcast(isIncreaese, root=0)
         if isIncreaese:
             # 解と残差を再計算
             x = pre_x.copy()
             Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
             Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
-            zeta = mpi_vecvec(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec(Ar[1], Ar[1], local_a, local_b, comm)
+            zeta = mpi_vecvec2(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec1(Ar[1], local_a, comm)
             Ay[0] = zeta * Ar[1]
             z = -zeta * Ar[0]
             Ar[0] -= Ay[0]
@@ -85,15 +76,14 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
 
             # kを下げて収束を安定化させる
             if k > 1:
-                dif += 1
                 k -= 1
         else:
             pre_residual = cur_residual
-            residual[i - dif] = cur_residual
+            residual[index] = cur_residual
             pre_x = x.copy()
             
         # 収束判定
-        isConverged = np.array([cur_residual.get() < epsilon], dtype=bool)
+        isConverged = np.array([cur_residual < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
@@ -103,36 +93,29 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 1):
             Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
-        Ar_cpu = Ar.get()
-        Ay_cpu = Ay.get()
-        comm.Bcast(Ar_cpu)
-        comm.Bcast(Ay_cpu)
-        Ar = cp.asarray(Ar_cpu)
-        Ay = cp.asarray(Ay_cpu)
+        comm.Bcast(Ar)
+        comm.Bcast(Ay)
         for j in range(2*k + 3):
             jj = j // 2
             local_alpha[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_alpha.get(), alpha_cpu, root=0)
-        alpha = cp.asarray(alpha_cpu)
+        comm.Reduce(local_alpha, alpha, root=0)
         for j in range(1, 2 * k + 2):
             jj = j//2
             local_beta[j] = dot(
                 Ay[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_beta.get(), beta_cpu, root=0)
-        beta = cp.asarray(beta_cpu)
+        comm.Reduce(local_beta, beta, root=0)
         for j in range(2 * k + 1):
             jj = j // 2
             local_delta[j] = dot(
                 Ay[jj][rank * local_N: (rank+1) * local_N],
                 Ay[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_delta.get(), delta_cpu, root=0)
-        delta = cp.asarray(delta_cpu)
+        comm.Reduce(local_delta, delta, root=0)
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
@@ -168,15 +151,16 @@ def adaptive_k_skip_mrr(A, b, epsilon, k, T=np.float64):
             Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
             x -= z
 
-        num_of_solution_updates[i + 1 - dif] = num_of_solution_updates[i - dif] + k + 1
-        k_history[i + 1 - dif] = k
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
+        k_history[index] = k
     else:
         isConverged = False
-        
-    num_of_iter = i - dif
+
+    num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter], k)
-        return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get(), k_history[:num_of_iter+1].get()
+        elapsed_time = end(start_time, isConverged, num_of_iter, residual[index], k)
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
     else:
         exit(0)

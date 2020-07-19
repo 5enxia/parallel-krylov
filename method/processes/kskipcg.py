@@ -1,58 +1,49 @@
 import numpy as np
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-from mpi4py import MPI
-
-from ..common import start, end
-from .common import init, init_matvec, init_vecvec, mpi_matvec
+from .common import start, end, init, init_mpi
 
 
-def k_skip_cg(A, b, epsilon, k, T=np.float64):
-    # MPI
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    num_of_process = comm.Get_size()
-    # GPU
-    pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
-    cp.cuda.set_allocator(pool.malloc)
-    num_of_gpu = cp.cuda.runtime.getDeviceCount()
-    cp.cuda.Device(rank % num_of_gpu).use()
+def kskipcg(A, b, epsilon, k, T, pu):
+    comm, rank, num_of_process = init_mpi()
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        from .common import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        from .common import init_gpu
+        init_gpu(rank)
+
     # 共通初期化
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
-    local_a, local_b = init_vecvec(local_N, T)
-    local_A_cpu = local_A.get()
-    comm.Scatter(A, local_A_cpu, root=0)
-    local_A = cp.asarray(local_A_cpu)
-    # root_gpu
-    Ar = cp.zeros((k + 2, N), T)
-    Ap = cp.zeros((k + 3, N), T)
-    a = cp.zeros(2*k + 2, T)
-    f = cp.zeros(2*k + 4, T)
-    c = cp.zeros(2*k + 2, T)
-    # root_cpu
-    Ar_cpu = np.zeros((k + 2, N), T)
-    Ap_cpu = np.zeros((k + 3, N), T)
-    a_cpu = np.zeros(2*k + 2, T)
-    f_cpu = np.zeros(2*k + 4, T)
-    c_cpu = np.zeros(2*k + 2, T)
+    comm.Scatter(A, local_A, root=0)
+    # root
+    Ar = xp.zeros((k + 2, N), T)
+    Ap = xp.zeros((k + 3, N), T)
+    a = xp.zeros(2*k + 2, T)
+    f = xp.zeros(2*k + 4, T)
+    c = xp.zeros(2*k + 2, T)
     # local
-    local_a = cp.zeros(2*k + 2, T)
-    local_f = cp.zeros(2*k + 4, T)
-    local_c = cp.zeros(2*k + 2, T)
-    
+    local_a = xp.zeros(2*k + 2, T)
+    local_f = xp.zeros(2*k + 4, T)
+    local_c = xp.zeros(2*k + 2, T)
+
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
     Ap[0] = Ar[0]
 
     # 反復計算
+    i = 0
+    index = 0
     if rank == 0:
         start_time = start(method_name='k-skip CG', k=k)
-    for i in range(max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        isConverged = np.array([residual[i].get() < epsilon], dtype=bool)
+        residual[index] = norm(Ar[0]) / b_norm
+        isConverged = np.array([residual[index] < epsilon], dtype=bool)
         comm.Bcast(isConverged, root=0)
         if isConverged:
             break
@@ -62,36 +53,29 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
             Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 2):
             Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ax, comm)
-        Ar_cpu = Ar.get()
-        Ap_cpu = Ap.get()
-        comm.Bcast(Ar_cpu)
-        comm.Bcast(Ap_cpu)
-        Ar = cp.asarray(Ar_cpu)
-        Ap = cp.asarray(Ap_cpu)
+        comm.Bcast(Ar)
+        comm.Bcast(Ap)
         for j in range(2 * k + 1):
             jj = j // 2
             local_a[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_a.get(), a_cpu, root=0)
-        a = cp.asarray(a_cpu)
+        comm.Reduce(local_a, a, root=0)
         for j in range(2 * k + 4):
             jj = j // 2
             local_f[j] = dot(
                 Ap[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_f.get(), f_cpu, root=0)
-        f = cp.asarray(f_cpu)
+        comm.Reduce(local_f, f, root=0)
         for j in range(2 * k + 2):
             jj = j // 2
             local_c[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_c.get(), c_cpu, root=0)
-        c = cp.asarray(c_cpu)
+        comm.Reduce(local_c, c, root=0)
 
         # CGでの1反復
         # 解の更新
@@ -118,14 +102,14 @@ def k_skip_cg(A, b, epsilon, k, T=np.float64):
             Ap[0] = Ar[0] + beta * Ap[0]
             Ap[1] = mpi_matvec(local_A, Ap[0], Ax, local_Ax, comm)
 
-        num_of_solution_updates[i+1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
 
-    num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter])
-        return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+        elapsed_time = end(start_time, isConverged, i, residual[index])
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)

@@ -1,14 +1,20 @@
 import numpy as np
-from numpy.linalg import norm
 
-from ..common import start, end
-from .common import init, init_mpi, init_matvec, init_vecvec, mpi_matvec, mpi_vecvec
+from .common import start, end, init, init_mpi
 
 
-def cg(A, b, epsilon, T=np.float64):
-    # 共通初期化
+def cg(A, b, epsilon, T, pu):
     comm, rank, num_of_process = init_mpi()
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    if pu == 'cpu':
+        from numpy.linalg import norm
+        from .cpu import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+    else:
+        from cupy.linalg import norm
+        from .common import init_gpu
+        init_gpu(rank)
+
+    # 共通初期化
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     local_a, local_b = init_vecvec(local_N, T)
     comm.Scatter(A, local_A, root=0)
@@ -16,6 +22,7 @@ def cg(A, b, epsilon, T=np.float64):
     # 初期残差
     r = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
     p = r.copy()
+    gamma = mpi_vecvec1(r, local_a, comm)
 
     # 反復計算
     i = 0
@@ -31,11 +38,13 @@ def cg(A, b, epsilon, T=np.float64):
 
         # 解の更新
         v = mpi_matvec(local_A, p, Ax, local_Ax, comm)
-        alpha = mpi_vecvec(r, p, local_a, local_b, comm) / mpi_vecvec(p, v, local_a, local_b, comm)
+        sigma = mpi_vecvec2(p, v, local_a, local_b, comm)
+        alpha = gamma / sigma
         x += alpha * p
-        old_r = r.copy()
-        r -= alpha * mpi_matvec(local_A, p, Ax, local_Ax, comm)
-        beta = mpi_vecvec(r, r, local_a, local_b, comm) / mpi_vecvec(old_r, old_r, local_a, local_b, comm)
+        r -= alpha * v
+        old_gamma = gamma.copy()
+        gamma = mpi_vecvec1(r, local_a, comm)
+        beta = gamma / old_gamma
         p = r + beta * p
         i += 1
         num_of_solution_updates[i] = i
