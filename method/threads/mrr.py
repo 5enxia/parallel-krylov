@@ -36,9 +36,13 @@ def mrr(A, b, epsilon, T, pu):
 
         # 解の更新
         Ar = dot(A, r)
-        gamma = dot(y, Ar) / dot(y, y)
+        mu = dot(y, y)
+        nu = dot(y, Ar)
+        gamma = nu / mu
         s = Ar - gamma * y
-        zeta = dot(r, s) / dot(s, s)
+        rs = dot(r, s)
+        ss = dot(s, s)
+        zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
         z = eta * z - zeta * r

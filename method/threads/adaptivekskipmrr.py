@@ -31,7 +31,9 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
     # 初期反復
     start_time = start(method_name='Adaptive k-skip MrR', k=k)
     Ar[1] = dot(A, Ar[0])
-    zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
+    rAr = dot(Ar[0], Ar[1])
+    ArAr = dot(Ar[1], Ar[1])
+    zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
@@ -50,7 +52,9 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
             x = pre_x.copy()
             Ar[0] = b - dot(A, x)
             Ar[1] = dot(A, Ar[0])
-            zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
+            rAr = dot(Ar[0], Ar[1])
+            ArAr = dot(Ar[1], Ar[1])
+            zeta = rAr / ArAr
             Ay[0] = zeta * Ar[1]
             z = -zeta * Ar[0]
             Ar[0] -= Ay[0]
