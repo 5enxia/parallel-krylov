@@ -97,6 +97,7 @@ def kskipmrr(A, b, epsilon, k, T, pu):
         num_of_solution_updates[index] = i
     else:
         isConverged = False
+        residual[index] = norm(Ar[0]) / b_norm
 
     elapsed_time = end(start_time, isConverged, i, residual[index])
     return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
