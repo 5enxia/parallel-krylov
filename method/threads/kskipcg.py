@@ -1,15 +1,17 @@
-from .common import start, end
+from .common import start, end, init
 
 
-def _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, pu):
+def kskipcg(A, b, epsilon, k, T, pu):
     if pu == 'cpu':
         import numpy as xp
         from numpy import dot
         from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
     else:
         import cupy as xp
         from cupy import dot
         from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T, pu)
 
     # 初期化
     Ar = xp.zeros((k + 2, N), T)
@@ -80,15 +82,3 @@ def _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solut
 
     elapsed_time = end(start_time, isConverged, i, residual[index])
     return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
-
-
-def kskipcg_cpu(A, b, epsilon, k, T):
-    from .common import init_cpu
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init_cpu(A, b, T)
-    return _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'cpu')
-
-
-def kskipcg_gpu(A, b, epsilon, k, T):
-    from .common import init_gpu
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T)
-    return _kskipcg(A, b, epsilon, k, T, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'gpu')

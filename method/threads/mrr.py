@@ -1,13 +1,15 @@
-from .common import start, end
+from .common import start, end, init
 
 
-def _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, pu):
+def mrr(A, b, epsilon, T, pu):
     if pu == 'cpu':
         from numpy import dot
         from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
     else:
         from cupy import dot
         from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
 
     # 初期残差
     r = b - dot(A, x)
@@ -49,15 +51,3 @@ def _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_update
 
     elapsed_time = end(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
-
-
-def mrr_cpu(A, b, epsilon, T):
-    from .common import init_cpu
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init_cpu(A, b, T)
-    return _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'cpu')
-
-
-def mrr_gpu(A, b, epsilon, T):
-    from .common import init_gpu
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init_gpu(A, b, T)
-    return _mrr(A, b, epsilon, x, b_norm, N, max_iter, residual, num_of_solution_updates, 'gpu')
