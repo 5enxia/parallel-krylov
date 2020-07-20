@@ -67,7 +67,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
     while i < max_iter:
         cur_residual = norm(Ar[0]) / b_norm
         # 残差減少判定
-        isIncreaese = np.array([cur_residual > pre_residual, bool)
+        isIncreaese = np.array([cur_residual > pre_residual], bool)
         comm.Bcast(isIncreaese, root=0)
         if isIncreaese:
             # 解と残差を再計算
