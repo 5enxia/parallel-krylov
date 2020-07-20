@@ -26,13 +26,19 @@ def kskipcg(A, b, epsilon, k, T, pu):
     else:
         local_A_cpu = np.empty((local_N, N), T)
         comm.Scatter(A, local_A_cpu)
-        local_A = cp.asarray(local_A_cpu)
+        local_A = xp.asarray(local_A_cpu)
     # root
     Ar = xp.zeros((k + 2, N), T)
     Ap = xp.zeros((k + 3, N), T)
     a = xp.zeros(2*k + 2, T)
     f = xp.zeros(2*k + 4, T)
     c = xp.zeros(2*k + 2, T)
+    # root_cpu
+    Ar_cpu = np.zeros((k + 2, N), T)
+    Ap_cpu = np.zeros((k + 3, N), T)
+    a_cpu = np.zeros(2*k + 2, T)
+    f_cpu = np.zeros(2*k + 4, T)
+    c_cpu = np.zeros(2*k + 2, T)
     # local
     local_a = xp.zeros(2*k + 2, T)
     local_f = xp.zeros(2*k + 4, T)
@@ -60,29 +66,36 @@ def kskipcg(A, b, epsilon, k, T, pu):
             Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 2):
             Ap[j] = mpi_matvec(local_A, Ap[j-1], Ax, local_Ax, comm)
-        comm.Bcast(Ar)
-        comm.Bcast(Ap)
+        Ar_cpu = Ar.get()
+        Ap_cpu = Ap.get()
+        comm.Bcast(Ar_cpu)
+        comm.Bcast(Ap_cpu)
+        Ar = xp.asarray(Ar_cpu)
+        Ap = xp.asarray(Ap_cpu)
         for j in range(2 * k + 1):
             jj = j // 2
             local_a[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_a, a, root=0)
+        comm.Reduce(local_a.get(), a_cpu, root=0)
+        a = xp.asarray(a_cpu)
         for j in range(2 * k + 4):
             jj = j // 2
             local_f[j] = dot(
                 Ap[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_f, f, root=0)
+        comm.Reduce(local_f.get(), f_cpu, root=0)
+        f = xp.asarray(f_cpu)
         for j in range(2 * k + 2):
             jj = j // 2
             local_c[j] = dot(
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ap[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_c, c, root=0)
+        comm.Reduce(local_c.get(), c_cpu, root=0)
+        c = xp.asarray(c_cpu)
 
         # CGでの1反復
         # 解の更新

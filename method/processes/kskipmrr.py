@@ -35,6 +35,13 @@ def kskipmrr(A, b, epsilon, k, T, pu):
     beta = xp.empty(2*k + 2, T)
     beta[0] = 0
     delta = xp.empty(2*k + 1, T)
+    # root_cpu
+    Ar_cpu = np.empty((k + 3, N), T)
+    Ay_cpu = np.empty((k + 2, N), T)
+    alpha_cpu = np.empty(2*k + 3, T)
+    beta_cpu = np.empty(2*k + 2, T)
+    beta[0] = 0
+    delta_cpu = np.empty(2*k + 1, T)
     # local
     local_alpha = xp.empty(2*k + 3, T)
     local_beta = xp.empty(2*k + 2, T)
@@ -72,8 +79,12 @@ def kskipmrr(A, b, epsilon, k, T, pu):
             Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
         for j in range(1, k + 1):
             Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
-        comm.Bcast(Ar)
-        comm.Bcast(Ay)
+        Ar_cpu = Ar.get()
+        Ay_cpu = Ay.get()
+        comm.Bcast(Ar_cpu)
+        comm.Bcast(Ay_cpu)
+        Ar = xp.asarray(Ar_cpu)
+        Ay = xp.asarray(Ay_cpu)
         for j in range(2*k + 3):
             jj = j // 2
             local_alpha[j] = dot(

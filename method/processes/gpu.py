@@ -11,8 +11,8 @@ def init_matvec(N, local_N, T):
 
 
 def init_vecvec(local_N, T):
-    local_a = np.empty(local_N, T)
-    local_b = np.empty(local_N, T)
+    local_a = cp.empty(local_N, T)
+    local_b = cp.empty(local_N, T)
     return local_a, local_b
 
 
@@ -27,7 +27,9 @@ def mpi_matvec(local_A, x, Ax, local_Ax, comm):
 
 def mpi_vecvec1(a, local_a, comm):
     ab = np.empty(1, cp.float64)
-    comm.Scatter(a.get(), local_a)
+    local_a_cpu = local_a.get()
+    comm.Scatter(a.get(), local_a_cpu)
+    local_a = cp.asarray(local_a_cpu)
     local_ab = dot(local_a, local_a)
     comm.Reduce(local_ab.get(), ab)
     return cp.asarray(ab)
@@ -35,8 +37,12 @@ def mpi_vecvec1(a, local_a, comm):
 
 def mpi_vecvec2(a, b, local_a, local_b, comm):
     ab = np.empty(1, cp.float64)
-    comm.Scatter(a.get(), local_a)
-    comm.Scatter(b.get(), local_b)
+    local_a_cpu = local_a.get()
+    local_b_cpu = local_b.get()
+    comm.Scatter(a.get(), local_a_cpu)
+    comm.Scatter(b.get(), local_b_cpu)
+    local_a = cp.asarray(local_a_cpu)
+    local_b = cp.asarray(local_b_cpu)
     local_ab = dot(local_a, local_b)
     comm.Reduce(local_ab.get(), ab)
     return cp.asarray(ab)
