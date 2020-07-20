@@ -1,33 +1,24 @@
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-
-from ..common import start, end
-from .common import init
+from .common import start, end, init
 
 
-def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
-    """[summary]
+def kskipmrr(A, b, epsilon, k, T, pu):
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
 
-    Args:
-        A (np.ndarray): 係数行列A
-        b (np.ndarray): bベクトル
-        epsilon (float): 収束判定子
-        k (int): k
-        T ([type], optional): 浮動小数精度 Defaults to np.float64.
-
-    Returns:
-        float: 経過時間
-        np.ndarray: 残差更新履歴
-        np.ndarray: 残差履歴
-    """
     # 初期化
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    Ar = cp.empty((k + 3, N), T)
-    Ay = cp.empty((k + 2, N), T)
-    alpha = cp.empty(2 * k + 3, T)
-    beta = cp.empty(2 * k + 2, T)
-    delta = cp.empty(2 * k + 1, T)
+    Ar = xp.empty((k + 3, N), T)
+    Ay = xp.empty((k + 2, N), T)
+    alpha = xp.empty(2 * k + 3, T)
+    beta = xp.empty(2 * k + 2, T)
+    delta = xp.empty(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差
@@ -43,12 +34,14 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
     Ar[0] -= Ay[0]
     x -= z
     num_of_solution_updates[1] = 1
+    i = 1
+    index = 1
 
     # 反復計算
-    for i in range(1, max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        if residual[i] < epsilon:
+        residual[index] = norm(Ar[0]) / b_norm
+        if residual[index] < epsilon:
             isConverged = True
             break
 
@@ -84,29 +77,27 @@ def k_skip_mrr(A, b, epsilon, k, T=cp.float64):
             delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
             beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
             alpha[1] = -beta[1]
-
             for l in range(2, 2 * (k - j) + 1):
                 delta[l] = eta ** 2 * delta[l] + 2 * eta * zeta * beta[l+1] + zeta ** 2 * alpha[l + 2]
                 tau = eta * beta[l] + zeta * alpha[l + 1]
                 beta[l] = tau - delta[l]
                 alpha[l] -= tau + beta[l]
-
             # 解の更新
-            sigma = alpha[2] * delta[0] - beta[1] ** 2
-            zeta = alpha[1] * delta[0] / sigma
-            eta = -alpha[1] * beta[1] / sigma
+            d = alpha[2] * delta[0] - beta[1] ** 2
+            zeta = alpha[1] * delta[0] / d
+            eta = -alpha[1] * beta[1] / d
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
             Ar[1] = dot(A, Ar[0])
             x -= z
 
-        num_of_solution_updates[i + 1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
+        residual[index] = norm(Ar[0]) / b_norm
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+    elapsed_time = end(start_time, isConverged, i, residual[index])
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]

@@ -1,6 +1,0 @@
-*.sh.*
-*.sh
-*.py.o*
-tmp/
-__pycache__/
-condition.json

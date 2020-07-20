@@ -1,1 +1,7 @@
-__all__ = ['cpu', 'gpu']
+__all__ = [
+    'cg',
+    'mrr',
+    'kskipcg',
+    'kskipmrr',
+    'adaptivekskipmrr',
+]

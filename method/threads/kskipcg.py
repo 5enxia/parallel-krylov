@@ -1,44 +1,37 @@
-import cupy as cp
-from cupy import dot
-from cupy.linalg import norm
-
-from ..common import start, end
-from .common import init
+from .common import start, end, init
 
 
-def k_skip_cg(A, b, epsilon, k, T=cp.float64):
-    """[summary]
+def kskipcg(A, b, epsilon, k, T, pu):
+    if pu == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
 
-    Args:
-        A (np.ndarray): 係数行列A
-        b (np.ndarray): bベクトル
-        epsilon (float): 収束判定子
-        k (int): k
-        T ([type], optional): 浮動小数精度 Defaults to np.float64.
-
-    Returns:
-        float: 経過時間
-        np.ndarray: 残差更新履歴
-        np.ndarray: 残差履歴
-    """
     # 初期化
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    Ar = cp.zeros((k + 2, N), T)
-    Ap = cp.zeros((k + 3, N), T)
-    a = cp.zeros(2 * k + 2, T)
-    f = cp.zeros(2 * k + 4, T)
-    c = cp.zeros(2 * k + 2, T)
+    Ar = xp.zeros((k + 2, N), T)
+    Ap = xp.zeros((k + 3, N), T)
+    a = xp.zeros(2 * k + 2, T)
+    f = xp.zeros(2 * k + 4, T)
+    c = xp.zeros(2 * k + 2, T)
 
     # 初期残差
     Ar[0] = b - dot(A, x)
     Ap[0] = Ar[0]
 
     # 反復計算
+    i = 0
+    index = 0
     start_time = start(method_name='k-skip CG', k=k)
-    for i in range(0, max_iter):
+    while i < max_iter:
         # 収束判定
-        residual[i] = norm(Ar[0]) / b_norm
-        if residual[i] < epsilon:
+        residual[index] = norm(Ar[0]) / b_norm
+        if residual[index] < epsilon:
             isConverged = True
             break
 
@@ -81,12 +74,12 @@ def k_skip_cg(A, b, epsilon, k, T=cp.float64):
             Ap[0] = Ar[0] + beta * Ap[0]
             Ap[1] = dot(A, Ap[0])
 
-        num_of_solution_updates[i+1] = num_of_solution_updates[i] + k + 1
-
+        i += (k + 1)
+        index += 1
+        num_of_solution_updates[index] = i
     else:
         isConverged = False
+        residual[index] = norm(Ar[0]) / b_norm
 
-    num_of_iter = i
-    elapsed_time = end(start_time, isConverged, num_of_iter, residual[num_of_iter]) 
-
-    return elapsed_time, num_of_solution_updates[:num_of_iter+1].get(), residual[:num_of_iter+1].get()
+    elapsed_time = end(start_time, isConverged, i, residual[index])
+    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
