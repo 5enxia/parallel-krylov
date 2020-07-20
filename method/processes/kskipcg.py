@@ -33,16 +33,16 @@ def kskipcg(A, b, epsilon, k, T, pu):
     a = xp.zeros(2*k + 2, T)
     f = xp.zeros(2*k + 4, T)
     c = xp.zeros(2*k + 2, T)
+    # local
+    local_a = xp.zeros(2*k + 2, T)
+    local_f = xp.zeros(2*k + 4, T)
+    local_c = xp.zeros(2*k + 2, T)
     # root_cpu
     Ar_cpu = np.zeros((k + 2, N), T)
     Ap_cpu = np.zeros((k + 3, N), T)
     a_cpu = np.zeros(2*k + 2, T)
     f_cpu = np.zeros(2*k + 4, T)
     c_cpu = np.zeros(2*k + 2, T)
-    # local
-    local_a = xp.zeros(2*k + 2, T)
-    local_f = xp.zeros(2*k + 4, T)
-    local_c = xp.zeros(2*k + 2, T)
 
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)

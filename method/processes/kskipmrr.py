@@ -35,6 +35,11 @@ def kskipmrr(A, b, epsilon, k, T, pu):
     beta = xp.empty(2*k + 2, T)
     beta[0] = 0
     delta = xp.empty(2*k + 1, T)
+    # local
+    local_alpha = xp.empty(2*k + 3, T)
+    local_beta = xp.empty(2*k + 2, T)
+    local_beta[0] = 0
+    local_delta = xp.empty(2*k + 1, T)
     # root_cpu
     Ar_cpu = np.empty((k + 3, N), T)
     Ay_cpu = np.empty((k + 2, N), T)
@@ -42,11 +47,6 @@ def kskipmrr(A, b, epsilon, k, T, pu):
     beta_cpu = np.empty(2*k + 2, T)
     beta[0] = 0
     delta_cpu = np.empty(2*k + 1, T)
-    # local
-    local_alpha = xp.empty(2*k + 3, T)
-    local_beta = xp.empty(2*k + 2, T)
-    local_beta[0] = 0
-    local_delta = xp.empty(2*k + 1, T)
     
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
@@ -91,21 +91,24 @@ def kskipmrr(A, b, epsilon, k, T, pu):
                 Ar[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_alpha, alpha, root=0)
+        comm.Reduce(local_alpha.get(), alpha_cpu, root=0)
+        alpha = xp.asarray(alpha_cpu)
         for j in range(1, 2 * k + 2):
             jj = j//2
             local_beta[j] = dot(
                 Ay[jj][rank * local_N: (rank+1) * local_N],
                 Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_beta, beta, root=0)
+        comm.Reduce(local_beta.get(), beta_cpu, root=0)
+        beta = xp.asarray(beta_cpu)
         for j in range(2 * k + 1):
             jj = j // 2
             local_delta[j] = dot(
                 Ay[jj][rank * local_N: (rank+1) * local_N],
                 Ay[jj + j % 2][rank * local_N: (rank+1) * local_N]
             )
-        comm.Reduce(local_delta, delta, root=0)
+        comm.Reduce(local_delta.get(), delta_cpu, root=0)
+        delta = xp.asarray(delta_cpu)
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
