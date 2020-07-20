@@ -1,4 +1,5 @@
 import numpy as np
+
 from .common import start, end, init, init_mpi
 
 
@@ -8,18 +9,24 @@ def kskipcg(A, b, epsilon, k, T, pu):
         import numpy as xp
         from numpy import dot
         from numpy.linalg import norm
-        from .common import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+        from .cpu import init_matvec, mpi_matvec
     else:
         import cupy as xp
         from cupy import dot
         from cupy.linalg import norm
         from .common import init_gpu
         init_gpu(rank)
+        from .gpu import init_matvec,  mpi_matvec
 
     # 共通初期化
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     local_A, Ax, local_Ax = init_matvec(N, local_N, T)
-    comm.Scatter(A, local_A, root=0)
+    if pu == 'cpu':
+        comm.Scatter(A, local_A)
+    else:
+        local_A_cpu = np.empty((local_N, N), T)
+        comm.Scatter(A, local_A_cpu)
+        local_A = cp.asarray(local_A_cpu)
     # root
     Ar = xp.zeros((k + 2, N), T)
     Ap = xp.zeros((k + 3, N), T)
@@ -33,7 +40,7 @@ def kskipcg(A, b, epsilon, k, T, pu):
 
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
-    Ap[0] = Ar[0]
+    Ap[0] = Ar[0].copy()
 
     # 反復計算
     i = 0
@@ -43,8 +50,8 @@ def kskipcg(A, b, epsilon, k, T, pu):
     while i < max_iter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
-        isConverged = np.array([residual[index] < epsilon], dtype=bool)
-        comm.Bcast(isConverged, root=0)
+        isConverged = np.array([residual[index] < epsilon], bool)
+        comm.Bcast(isConverged)
         if isConverged:
             break
 

@@ -45,9 +45,9 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
 
     # 反復計算
     while i < max_iter:
-        cur_residual = norm(Ar[0]) / b_norm
+        residual[index] = norm(Ar[0]) / b_norm
         # 残差減少判定
-        if cur_residual > pre_residual:
+        if residual[index] > pre_residual:
             # 残差と解を直前の状態に戻す
             x = pre_x.copy()
             Ar[0] = b - dot(A, x)
@@ -59,16 +59,22 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
             z = -zeta * Ar[0]
             Ar[0] -= Ay[0]
             x -= z
+
+            i += 1
+            index += 1
+            residual[index] = norm(Ar[0]) / b_norm
+            num_of_solution_updates[index] = i
+            
             # kを1下げる
             if k > 1:
                 k -= 1
+            k_history[index] = k
         else:
-            pre_residual = cur_residual
-            residual[index] = cur_residual
+            pre_residual = residual[index] 
             pre_x = x.copy()
 
         # 収束判定
-        if cur_residual < epsilon:
+        if residual[index] < epsilon:
             isConverged = True
             break
 
