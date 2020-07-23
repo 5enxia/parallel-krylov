@@ -48,7 +48,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
     beta[0] = 0
     delta_cpu = np.empty(2*k + 1, T)
     
-    k_history = xp.zeros(max_iter+1, np.int)
+    k_history = np.zeros(max_iter+1, np.int)
     k_history[0] = k
 
     # 初期残差
