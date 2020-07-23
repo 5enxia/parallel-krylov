@@ -87,9 +87,9 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
             Ar[0] -= Ay[0]
             x -= z
 
+            residual[index] = norm(Ar[0]) / b_norm
             i += 1
             index += 1
-            residual[index] = norm(Ar[0]) / b_norm
             num_of_solution_updates[index] = i
 
             # kを下げて収束を安定化させる
