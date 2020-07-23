@@ -80,4 +80,4 @@ def load_condition_params(path: str, T=np.float64):
         sub_diag = params['sub_diag']
         k = params['k']
 
-        return epsilon, N, diag, sub_diag, k, T
+        return epsilon, N, diag, sub_diag, k 
