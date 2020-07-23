@@ -54,6 +54,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
     # 初期残差
     Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
     residual[0] = norm(Ar[0]) / b_norm
+    cur_residual = residual[0]
     pre_residual = residual[0]
 
     # 初期反復
@@ -72,7 +73,9 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
 
     # 反復計算
     while i < max_iter:
+        pre_residual = cur_residual
         cur_residual = norm(Ar[0]) / b_norm
+        residual[index] = cur_residual
         # 残差減少判定
         isIncreaese = np.array([cur_residual > pre_residual], bool)
         comm.Bcast(isIncreaese, root=0)
@@ -87,18 +90,16 @@ def adaptivekskipmrr(A, b, epsilon, k, T, pu):
             Ar[0] -= Ay[0]
             x -= z
 
-            residual[index] = norm(Ar[0]) / b_norm
             i += 1
             index += 1
             num_of_solution_updates[index] = i
+            residual[index] = norm(Ar[0]) / b_norm
 
             # kを下げて収束を安定化させる
             if k > 1:
                 k -= 1
             k_history[index] = k
         else:
-            pre_residual = cur_residual
-            residual[index] = cur_residual
             pre_x = x.copy()
             
         # 収束判定
