@@ -66,6 +66,7 @@ def mrr(A, b, epsilon, T, pu):
         num_of_solution_updates[i] = i
     else:
         isConverged = False
+        residual[i] = norm(r) / b_norm
 
     if rank == 0:
         elapsed_time = end(start_time, isConverged, i, residual[i])
