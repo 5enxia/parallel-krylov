@@ -17,8 +17,8 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
     # Ay = xp.zeros((k + 2, N), T)
     Ar = np.zeros((k + 3 + 1, N), T)
     Ay = np.zeros((k + 2 + 1, N), T)
-    nu = np.zeros(1, T)
-    mu = np.zeros(1, T)
+    rAr = np.zeros(1, T)
+    ArAr = np.zeros(1, T)
     alpha = np.zeros(2*k + 3, T)
     beta = np.zeros(2*k + 2, T)
     delta = np.zeros(2*k + 1, T)
@@ -43,9 +43,9 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
     comm.Bcast(Ar[0])
     local_Ar[1][begin:end] = A[begin:end].dot(Ar[0])
     comm.Gather(local_Ar[1][begin:end], Ar[1])
-    comm.Reduce(Ar[0][begin:end].dot(local_Ar[1][begin:end]), nu)
-    comm.Reduce(local_Ar[1][begin:end].dot(local_Ar[1][begin:end]), mu)
-    zeta = nu / mu
+    comm.Reduce(Ar[0][begin:end].dot(local_Ar[1][begin:end]), rAr)
+    comm.Reduce(local_Ar[1][begin:end].dot(local_Ar[1][begin:end]), ArAr)
+    zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
@@ -66,13 +66,13 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
         # 事前計算
         # for j in range(1, k + 2):
         #     Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
+        # for j in range(1, k + 1):
+        #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         for j in range(1, (k + 2) + 1, 2):
             comm.Bcast(Ar[j-1])
             local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
             local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
             comm.Reduce(local_Ar, Ar[j:j+2])
-        # for j in range(1, k + 1):
-        #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         for j in range(1, (k + 1) + 1, 2):
             comm.Bcast(Ay[j-1])
             local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
@@ -220,6 +220,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         # 事前計算
         # for j in range(1, k + 2):
         #     Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
+        # for j in range(1, k + 1):
+        #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         Ar_cpu = Ar.get()
         Ay_cpu = Ay.get()
         for j in range(1, (k + 2) + 1, 2):
@@ -228,8 +230,6 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
             local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
             comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
-        # for j in range(1, k + 1):
-        #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         for j in range(1, (k + 1) + 1, 2):
             comm.Bcast(Ay_cpu[j-1])
             Ay[j-1] = cp.asarray(Ay_cpu[j-1])
