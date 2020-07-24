@@ -156,6 +156,6 @@ def mrr(A, b, epsilon, T, pu):
             _mrr_cpu(A, b, epsilon, T, pu)
     else:
         if rank == 0:
-            return _mrr_cpu(A, b, epsilon, T, pu)
+            return _mrr_gpu(A, b, epsilon, T, pu)
         else:
-            _mrr_cpu(A, b, epsilon, T, pu)
+            _mrr_gpu(A, b, epsilon, T, pu)
