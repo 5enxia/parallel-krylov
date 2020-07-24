@@ -231,15 +231,15 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         # for j in range(1, k + 1):
         #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
         for j in range(1, (k + 1) + 1, 2):
-            comm.Bcast(Ay[j-1])
+            comm.Bcast(Ay_cpu[j-1])
             Ay[j-1] = cp.asarray(Ay_cpu[j-1])
             local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
             local_Ay[1] = A[begin:end].T.dot(local_Ay[0][begin:end])
             comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
         comm.Bcast(Ar_cpu)
         comm.Bcast(Ay_cpu)
-        Ar = cp.asArray(Ar_cpu)
-        Ay = cp.asArray(Ay_cpu)
+        Ar = cp.asarray(Ar_cpu)
+        Ay = cp.asarray(Ay_cpu)
         for j in range(2*k + 3):
             jj = j//2
             local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
@@ -252,9 +252,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         comm.Reduce(local_alpha.get(), alpha_cpu)
         comm.Reduce(local_beta.get(), beta_cpu)
         comm.Reduce(local_delta.get(), delta_cpu)
-        alpha = cp.array(alpha_cpu)
-        beta = cp.array(beta_cpu)
-        delta = cp.array(delta_cpu)
+        alpha = cp.asarray(alpha_cpu)
+        beta = cp.asarray(beta_cpu)
+        delta = cp.asarray(delta_cpu)
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
