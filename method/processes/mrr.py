@@ -84,7 +84,7 @@ def _mrr_cpu(A, b, epsilon, T, pu):
 def _mrr_gpu(A, b, epsilon, T, pu):
     import cupy as cp
     from cupy.linalg import norm
-    
+
     from .common import init_gpu
 
     # 共通初期化
@@ -97,15 +97,19 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     Ax = np.empty(N, T)
     Ar = cp.empty(N, T)
     s = cp.empty(N, T)
-    rs = np.empty(1, T)
-    ss = np.empty(1, T)
-    nu = np.empty(1, T)
-    mu = np.empty(1, T)
+    rs = cp.empty(1, T)
+    ss = cp.empty(1, T)
+    nu = cp.empty(1, T)
+    mu = cp.empty(1, T)
     # cpu
     Ar_cpu = np.empty(N, T)
     r_cpu = np.empty(N, T)
     y_cpu = np.empty(N, T)
     s_cpu = np.empty(N, T)
+    rs_cpu = np.empty(1, T)
+    ss_cpu = np.empty(1, T)
+    nu_cpu = np.empty(1, T)
+    mu_cpu = np.empty(1, T)
 
     # 初期残差
     comm.Gather(A[begin:end].dot(x).get(), Ax)
@@ -121,8 +125,10 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     local_Ar = A[begin:end].dot(r)
     comm.Gather(local_Ar.get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
-    comm.Reduce(r[begin:end].dot(local_Ar).get(), rs)
-    comm.Reduce(local_Ar.dot(local_Ar).get(), ss)
+    comm.Reduce(r[begin:end].dot(local_Ar).get(), rs_cpu)
+    comm.Reduce(local_Ar.dot(local_Ar).get(), ss_cpu)
+    rs = cp.asarray(rs_cpu)
+    ss = cp.asarray(ss_cpu)
     zeta = rs / ss
     y = zeta * Ar
     z = -zeta * r
@@ -149,14 +155,18 @@ def _mrr_gpu(A, b, epsilon, T, pu):
         Ar = cp.asarray(Ar_cpu)
         comm.Scatter(y.get(), y_cpu[begin:end])
         y[begin:end] = cp.asarray(y_cpu[begin:end])
-        comm.Reduce(y[begin:end].dot(local_Ar).get(), nu)
-        comm.Reduce(y[begin:end].dot(y[begin:end]).get(), mu)
+        comm.Reduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
+        comm.Reduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
+        nu = cp.asarray(nu_cpu)
+        mu = cp.asarray(mu_cpu)
         gamma = nu / mu
         s = Ar - gamma * y
         comm.Scatter(s.get(), s_cpu[begin:end])
         s[begin:end] = cp.asarray(s_cpu[begin:end])
-        comm.Reduce(r[begin:end].dot(s[begin:end]).get(), rs)
-        comm.Reduce(s[begin:end].dot(s[begin:end]).get(), ss)
+        comm.Reduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
+        comm.Reduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
+        rs = cp.asarray(rs_cpu)
+        ss = cp.asarray(ss_cpu)
         zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
