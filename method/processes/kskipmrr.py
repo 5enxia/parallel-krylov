@@ -1,49 +1,59 @@
 import numpy as np
 
-from .common import start, end, init, init_mpi
+from .common import start, end as finish, init, init_mpi
 
 
 def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
-    comm, rank, num_of_process = init_mpi()
-    import numpy as xp
-    from numpy import dot
     from numpy.linalg import norm
-    from .cpu import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
 
     # 共通初期化
+    comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
-    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
-    local_a, local_b = init_vecvec(local_N, T)
-    comm.Scatter(A, local_A)
-    # root
-    Ar = xp.empty((k + 3, N), T)
-    Ay = xp.empty((k + 2, N), T)
-    alpha = xp.empty(2*k + 3, T)
-    beta = xp.empty(2*k + 2, T)
-    beta[0] = 0
-    delta = xp.empty(2*k + 1, T)
+    begin, end = rank * local_N, (rank+1) * local_N
+    comm.Scatter(A, A[begin:end])
+
+    # 初期化
+    Ax = np.empty(N, T)
+    # Ar = xp.zeros((k + 3, N), T)
+    # Ay = xp.zeros((k + 2, N), T)
+    Ar = np.zeros((k + 3 + 1, N), T)
+    Ay = np.zeros((k + 2 + 1, N), T)
+    nu = np.zeros(1, T)
+    mu = np.zeros(1, T)
+    alpha = np.zeros(2*k + 3, T)
+    beta = np.zeros(2*k + 2, T)
+    delta = np.zeros(2*k + 1, T)
+
     # local
-    local_alpha = xp.empty(2*k + 3, T)
-    local_beta = xp.empty(2*k + 2, T)
-    local_beta[0] = 0
-    local_delta = xp.empty(2*k + 1, T)
+    # local_Ar = xp.zeros(local_N, T)
+    # local_Ay = xp.zeros(local_N, T)
+    local_Ar = np.zeros((k + 3 + 1, N), T)
+    local_Ay = np.zeros((k + 2 + 1, N), T)
+    local_alpha = np.zeros(2*k + 3, T)
+    local_beta = np.zeros(2*k + 2, T)
+    local_delta = np.zeros(2*k + 1, T)
     
     # 初期残差
-    Ar[0] = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
+    comm.Gather(A[begin:end].dot(x), Ax)
+    Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='k-skip MrR', k=k)
-    Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
-    zeta = mpi_vecvec2(Ar[0], Ar[1], local_a, local_b, comm) / mpi_vecvec1(Ar[1], local_a, comm)
+    comm.Bcast(Ar[0])
+    local_Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+    comm.Gather(local_Ar[1][begin:end], Ar[1])
+    comm.Reduce(Ar[0][begin:end].dot(local_Ar[1][begin:end]), nu)
+    comm.Reduce(local_Ar[1][begin:end].dot(local_Ar[1][begin:end]), mu)
+    zeta = nu / mu
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
-    num_of_solution_updates[1] = 1
     i = 1
     index = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     while i < max_iter:
@@ -55,32 +65,33 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
             break
 
         # 事前計算
-        for j in range(1, k + 2):
-            Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
-        for j in range(1, k + 1):
-            Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
+        # for j in range(1, k + 2):
+        #     Ar[j] = mpi_matvec(local_A, Ar[j-1], Ax, local_Ax, comm)
+        for j in range(1, (k + 2) + 1, 2):
+            comm.Bcast(Ar[j-1])
+            local_Ar[j][begin:end] = A[begin:end].dot(Ar[j-1])
+            local_Ar[j+1] = A[begin:end].T.dot(local_Ar[j][begin:end])
+            comm.Reduce(local_Ar[j:j+2], Ar[j:j+2])
+        # for j in range(1, k + 1):
+        #     Ay[j] = mpi_matvec(local_A, Ay[j-1], Ax, local_Ax, comm)
+        for j in range(1, (k + 1) + 1, 2):
+            comm.Bcast(Ay[j-1])
+            local_Ay[j][begin:end] = A[begin:end].dot(Ay[j-1])
+            local_Ay[j+1] = A[begin:end].T.dot(local_Ay[j][begin:end])
+            comm.Reduce(local_Ay[j:j+2], Ay[j:j+2])
         comm.Bcast(Ar)
         comm.Bcast(Ay)
         for j in range(2*k + 3):
-            jj = j // 2
-            local_alpha[j] = dot(
-                Ar[jj][rank * local_N: (rank+1) * local_N],
-                Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
-            )
-        comm.Reduce(local_alpha, alpha)
-        for j in range(1, 2 * k + 2):
             jj = j//2
-            local_beta[j] = dot(
-                Ay[jj][rank * local_N: (rank+1) * local_N],
-                Ar[jj + j % 2][rank * local_N: (rank+1) * local_N]
-            )
+            local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+        for j in range(1, 2*k + 2):
+            jj = j//2
+            local_beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+        for j in range(2*k + 1):
+            jj = j//2
+            local_delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
+        comm.Reduce(local_alpha, alpha)
         comm.Reduce(local_beta, beta)
-        for j in range(2 * k + 1):
-            jj = j // 2
-            local_delta[j] = dot(
-                Ay[jj][rank * local_N: (rank+1) * local_N],
-                Ay[jj + j % 2][rank * local_N: (rank+1) * local_N]
-            )
         comm.Reduce(local_delta, delta)
 
         # MrRでの1反復(解と残差の更新)
@@ -90,7 +101,8 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
+        comm.Bcast(Ar[0])
+        comm.Gather(A[begin:end].dot(Ar[0]), Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -112,7 +124,8 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            Ar[1] = mpi_matvec(local_A, Ar[0], Ax, local_Ax, comm)
+            comm.Bcast(Ar[0])
+            comm.Gather(A[begin:end].dot(Ar[0]), Ar[1])
             x -= z
 
         i += (k + 1)
@@ -123,7 +136,7 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
         residual[index] = norm(Ar[0]) / b_norm
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[index])
+        elapsed_time = finish(start_time, isConverged, i, residual[index])
         return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)
