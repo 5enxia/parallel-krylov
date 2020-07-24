@@ -10,7 +10,6 @@ def _mrr_cpu(A, b, epsilon, T, pu):
     comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     begin, end = rank * local_N, (rank+1) * local_N
-    comm.Scatter(A, A[begin:end])
 
     # 初期化
     Ax = np.empty(N, T)
@@ -83,36 +82,54 @@ def _mrr_cpu(A, b, epsilon, T, pu):
 
 
 def _mrr_gpu(A, b, epsilon, T, pu):
-    comm, rank, num_of_process = init_mpi()
     import cupy as cp
     from cupy.linalg import norm
+    
     from .common import init_gpu
-    init_gpu(rank)
-    from .gpu import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
 
     # 共通初期化
+    comm, rank, num_of_process = init_mpi()
+    init_gpu(rank)
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
-    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
-    local_a, local_b = init_vecvec(local_N, T)
-    local_A_cpu = np.empty((local_N, N), T)
-    comm.Scatter(A, local_A_cpu)
-    local_A = cp.asarray(local_A_cpu)
+    begin, end = rank * local_N, (rank+1) * local_N
+
+    # 初期化
+    Ax = np.empty(N, T)
+    Ar = cp.empty(N, T)
+    s = cp.empty(N, T)
+    rs = np.empty(1, T)
+    ss = np.empty(1, T)
+    nu = np.empty(1, T)
+    mu = np.empty(1, T)
+    # cpu
+    Ar_cpu = np.empty(N, T)
+    r_cpu = np.empty(N, T)
+    y_cpu = np.empty(N, T)
+    s_cpu = np.empty(N, T)
 
     # 初期残差
-    r = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
+    comm.Gather(A[begin:end].dot(x).get(), Ax)
+    r = b - cp.asarray(Ax)
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    Ar = mpi_matvec(local_A, r, Ax, local_Ax, comm)
-    zeta = mpi_vecvec2(r, Ar, local_a, local_b, comm) / mpi_vecvec1(Ar, local_a, comm)
+    r_cpu = r.get()
+    comm.Bcast(r_cpu)
+    r = cp.asarray(r_cpu)
+    local_Ar = A[begin:end].dot(r)
+    comm.Gather(local_Ar.get(), Ar_cpu)
+    Ar = cp.asarray(Ar_cpu)
+    comm.Reduce(r[begin:end].dot(local_Ar).get(), rs)
+    comm.Reduce(local_Ar.dot(local_Ar).get(), ss)
+    zeta = rs / ss
     y = zeta * Ar
     z = -zeta * r
     r -= y
     x -= z
-    num_of_solution_updates[1] = 1
     i = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     while i < max_iter:
@@ -124,11 +141,23 @@ def _mrr_gpu(A, b, epsilon, T, pu):
             break
 
         # 解の更新
-        Ar = mpi_matvec(local_A, r, Ax, local_Ax, comm)
-        nu = mpi_vecvec2(y, Ar, local_a, local_b, comm)
-        gamma = nu / mpi_vecvec1(y, local_a, comm)
+        r_cpu = r.get()
+        comm.Bcast(r_cpu)
+        r = cp.asarray(r_cpu)
+        local_Ar = A[begin:end].dot(r)
+        comm.Gather(local_Ar.get(), Ar_cpu)
+        Ar = cp.asarray(Ar_cpu)
+        comm.Scatter(y.get(), y_cpu[begin:end])
+        y[begin:end] = cp.asarray(y_cpu[begin:end])
+        comm.Reduce(y[begin:end].dot(local_Ar).get(), nu)
+        comm.Reduce(y[begin:end].dot(y[begin:end]).get(), mu)
+        gamma = nu / mu
         s = Ar - gamma * y
-        zeta = mpi_vecvec2(r, s, local_a, local_b, comm) / mpi_vecvec1(s, local_a, comm)
+        comm.Scatter(s.get(), s_cpu[begin:end])
+        s[begin:end] = cp.asarray(s_cpu[begin:end])
+        comm.Reduce(r[begin:end].dot(s[begin:end]).get(), rs)
+        comm.Reduce(s[begin:end].dot(s[begin:end]).get(), ss)
+        zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
         z = eta * z - zeta * r
