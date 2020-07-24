@@ -50,6 +50,6 @@ def init(A, b, num_of_process, T, pu):
 
     if pu == 'gpu':
         import cupy as cp
-        return A, cp.asarray(b), cp.asarray(x), b_norm, N, local_N, max_iter, residual, num_of_solution_updates
+        return cp.asarray(A), cp.asarray(b), cp.asarray(x), b_norm, N, local_N, max_iter, residual, num_of_solution_updates
 
     return A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates
