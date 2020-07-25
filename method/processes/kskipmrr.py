@@ -266,7 +266,7 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         # comm.Reduce(delta.get(), delta_cpu)
         comm.Allreduce(alpha.get(), alpha_cpu)
         comm.Allreduce(beta.get(), beta_cpu)
-        comm.Allreduce(delta.get(), beta_cpu)
+        comm.Allreduce(delta.get(), delta_cpu)
         alpha = cp.asarray(alpha_cpu)
         beta = cp.asarray(beta_cpu)
         delta = cp.asarray(delta_cpu)
