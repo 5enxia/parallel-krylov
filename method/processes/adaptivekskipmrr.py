@@ -121,14 +121,14 @@ def _adaptivekskipmrr_cpu(A, b, epsilon, k, T, pu):
         for j in range(2*k + 3):
             jj = j//2
             local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-        comm.Reduce(local_alpha, alpha)
         for j in range(1, 2 * k + 2):
             jj = j//2
             local_beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-        comm.Reduce(local_beta, beta)
         for j in range(2 * k + 1):
             jj = j//2
             local_delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
+        comm.Reduce(local_alpha, alpha)
+        comm.Reduce(local_beta, beta)
         comm.Reduce(local_delta, delta)
 
         # MrRでの1反復(解と残差の更新)
