@@ -155,8 +155,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
     # 初期化
     Ax = np.empty(N, T)
-    Ar = cp.zeros((k + 3, N), T)
-    Ay = cp.zeros((k + 2, N), T)
+    Ar = cp.zeros((k + 2, N), T)
+    Ay = cp.zeros((k + 1, N), T)
     # Ar = cp.zeros((k + 3 + 1, N), T)
     # Ay = cp.zeros((k + 2 + 1, N), T)
     rAr = cp.empty(1, T)
@@ -165,8 +165,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     beta = cp.zeros(2*k + 2, T)
     delta = cp.zeros(2*k + 1, T)
     # cpu
-    Ar_cpu = cp.zeros((k + 3, N), T)
-    Ay_cpu = cp.zeros((k + 2, N), T)
+    Ar_cpu = np.zeros((k + 2, N), T)
+    Ay_cpu = np.zeros((k + 1, N), T)
     # Ar_cpu = np.zeros((k + 3 + 1, N), T)
     # Ay_cpu = np.zeros((k + 2 + 1, N), T)
     rAr_cpu = np.empty(1, T)
