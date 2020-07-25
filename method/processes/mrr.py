@@ -103,9 +103,7 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     mu = cp.empty(1, T)
     # cpu
     Ar_cpu = np.empty(N, T)
-    r_cpu = np.empty(N, T)
     y_cpu = np.empty(N, T)
-    s_cpu = np.empty(N, T)
     rs_cpu = np.empty(1, T)
     ss_cpu = np.empty(1, T)
     nu_cpu = np.empty(1, T)
@@ -113,23 +111,16 @@ def _mrr_gpu(A, b, epsilon, T, pu):
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
-    # comm.Gather(A[begin:end].dot(x).get(), Ax)
     r = b - cp.asarray(Ax)
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    # r_cpu = r.get()
-    # comm.Bcast(r_cpu)
-    # r = cp.asarray(r_cpu)
     local_Ar = A[begin:end].dot(r)
-    # comm.Gather(local_Ar.get(), Ar_cpu)
     comm.Allgather(local_Ar.get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
-    # comm.Reduce(r[begin:end].dot(local_Ar).get(), rs_cpu)
     comm.Allreduce(r[begin:end].dot(local_Ar).get(), rs_cpu)
-    # comm.Reduce(local_Ar.dot(local_Ar).get(), ss_cpu)
     comm.Allreduce(local_Ar.dot(local_Ar).get(), ss_cpu)
     rs = cp.asarray(rs_cpu)
     ss = cp.asarray(ss_cpu)
@@ -145,35 +136,23 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        # isConverged = np.array([residual[i] < epsilon], bool)
         isConverged = residual[i] < epsilon
-        # comm.Bcast(isConverged)
         if isConverged:
             break
 
         # 解の更新
-        # r_cpu = r.get()
-        # comm.Bcast(r_cpu)
-        # r = cp.asarray(r_cpu)
         local_Ar = A[begin:end].dot(r)
-        # comm.Gather(local_Ar.get(), Ar_cpu)
         comm.Allgather(local_Ar.get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
         comm.Scatter(y.get(), y_cpu[begin:end])
         y[begin:end] = cp.asarray(y_cpu[begin:end])
-        # comm.Reduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
         comm.Allreduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
-        # comm.Reduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         nu = cp.asarray(nu_cpu)
         mu = cp.asarray(mu_cpu)
         gamma = nu / mu
         s = Ar - gamma * y
-        # comm.Scatter(s.get(), s_cpu[begin:end])
-        # s[begin:end] = cp.asarray(s_cpu[begin:end])
-        # comm.Reduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
         comm.Allreduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
-        # comm.Reduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
         comm.Allreduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
         rs = cp.asarray(rs_cpu)
         ss = cp.asarray(ss_cpu)
