@@ -76,10 +76,10 @@ def _adaptivekskipmrr_cpu(A, b, epsilon, k, T, pu):
             comm.Gather(A[begin:end].dot(x), Ax)
             Ar[0] = b - Ax
             comm.Bcast(Ar[0])
-            local_Ar[1][begin:end] = A[begin:end].dot(Ar[0])
-            comm.Gather(local_Ar[1][begin:end], Ar[1])
-            comm.Reduce(Ar[0][begin:end].dot(local_Ar[1][begin:end]), rAr)
-            comm.Reduce(local_Ar[1][begin:end].dot(local_Ar[1][begin:end]), ArAr)
+            Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+            comm.Gather(Ar[1][begin:end], Ar[1])
+            comm.Reduce(Ar[0][begin:end].dot(Ar[1][begin:end]), rAr)
+            comm.Reduce(Ar[1][begin:end].dot(Ar[1][begin:end]), ArAr)
             zeta = rAr / ArAr
             Ay[0] = zeta * Ar[1]
             z = -zeta * Ar[0]
