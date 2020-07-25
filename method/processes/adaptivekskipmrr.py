@@ -209,9 +209,6 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     # local_Ay = xp.zeros(local_N, T)
     local_Ar = cp.zeros((2, N), T)
     local_Ay = cp.zeros((2, N), T)
-    local_alpha = cp.zeros(2*k + 3, T)
-    local_beta = cp.zeros(2*k + 2, T)
-    local_delta = cp.zeros(2*k + 1, T)
     # cpu
     x_cpu = np.zeros(N, T)
     Ax_cpu = np.zeros(N, T)
@@ -331,16 +328,16 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
         Ay = cp.asarray(Ay_cpu)
         for j in range(2*k + 3):
             jj = j//2
-            local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+            alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
         for j in range(1, 2*k + 2):
             jj = j//2
-            local_beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+            beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
         for j in range(2*k + 1):
             jj = j//2
-            local_delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        comm.Reduce(local_alpha.get(), alpha_cpu)
-        comm.Reduce(local_beta.get(), beta_cpu)
-        comm.Reduce(local_delta.get(), delta_cpu)
+            delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
+        comm.Reduce(alpha.get(), alpha_cpu)
+        comm.Reduce(beta.get(), beta_cpu)
+        comm.Reduce(delta.get(), delta_cpu)
         alpha = cp.asarray(alpha_cpu)
         beta = cp.asarray(beta_cpu)
         delta = cp.asarray(delta_cpu)
