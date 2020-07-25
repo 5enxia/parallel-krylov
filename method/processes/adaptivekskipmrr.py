@@ -395,7 +395,7 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
 
     num_of_iter = i
     if rank == 0:
-        elapsed_time = end(start_time, isIncreaeseIsConverged[1], num_of_iter, residual[index], k)
+        elapsed_time = finish(start_time, isIncreaeseIsConverged[1], num_of_iter, residual[index], k)
         return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
     else:
         exit(0)
