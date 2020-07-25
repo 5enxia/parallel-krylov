@@ -222,23 +222,27 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         Ar_cpu = Ar.get()
         Ay_cpu = Ay.get()
         # for j in range(1, (k + 2) + 1, 2):
+        comm.Bcast(Ar_cpu[0])
         for j in range(1, k + 2):
-            comm.Bcast(Ar_cpu[j-1])
+            # comm.Bcast(Ar_cpu[j-1])
             Ar[j-1] = cp.asarray(Ar_cpu[j-1])
             # local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
             # local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
             # comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
-            comm.Gather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            # comm.Gather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            comm.AllGather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
         # for j in range(1, (k + 1) + 1, 2):
+        comm.Bcast(Ay_cpu[0])
         for j in range(1, k + 1):
-            comm.Bcast(Ay_cpu[j-1])
+            # comm.Bcast(Ay_cpu[j-1])
             Ay[j-1] = cp.asarray(Ay_cpu[j-1])
             # local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
             # local_Ay[1] = A[begin:end].T.dot(local_Ay[0][begin:end])
             # comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
-            comm.Gather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
-        comm.Bcast(Ar_cpu)
-        comm.Bcast(Ay_cpu)
+            # comm.Gather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            comm.AllGather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+        # comm.Bcast(Ar_cpu)
+        # comm.Bcast(Ay_cpu)
         Ar = cp.asarray(Ar_cpu)
         Ay = cp.asarray(Ay_cpu)
         for j in range(2*k + 3):
