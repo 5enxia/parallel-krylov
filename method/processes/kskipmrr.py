@@ -155,10 +155,10 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
     # 初期化
     Ax = np.empty(N, T)
-    # Ar = xp.zeros((k + 3, N), T)
-    # Ay = xp.zeros((k + 2, N), T)
-    Ar = cp.zeros((k + 3 + 1, N), T)
-    Ay = cp.zeros((k + 2 + 1, N), T)
+    Ar = cp.zeros((k + 3, N), T)
+    Ay = cp.zeros((k + 2, N), T)
+    # Ar = cp.zeros((k + 3 + 1, N), T)
+    # Ay = cp.zeros((k + 2 + 1, N), T)
     rAr = cp.empty(1, T)
     ArAr = cp.empty(1, T)
     alpha = cp.zeros(2*k + 3, T)
