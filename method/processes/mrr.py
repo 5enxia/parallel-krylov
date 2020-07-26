@@ -103,7 +103,6 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     mu = cp.empty(1, T)
     # cpu
     Ar_cpu = np.empty(N, T)
-    y_cpu = np.empty(N, T)
     rs_cpu = np.empty(1, T)
     ss_cpu = np.empty(1, T)
     nu_cpu = np.empty(1, T)
@@ -117,11 +116,11 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    local_Ar = A[begin:end].dot(r)
-    comm.Allgather(local_Ar.get(), Ar_cpu)
+    Ar = A[begin:end].dot(r)
+    comm.Allgather(Ar.get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
-    comm.Allreduce(r[begin:end].dot(local_Ar).get(), rs_cpu)
-    comm.Allreduce(local_Ar.dot(local_Ar).get(), ss_cpu)
+    comm.Allreduce(r[begin:end].dot(Ar[begin:end]).get(), rs_cpu)
+    comm.Allreduce(Ar[begin:end].dot(Ar[begin:end]).get(), ss_cpu)
     rs = cp.asarray(rs_cpu)
     ss = cp.asarray(ss_cpu)
     zeta = rs / ss
@@ -143,7 +142,7 @@ def _mrr_gpu(A, b, epsilon, T, pu):
         # 解の更新
         comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
-        comm.Allreduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
+        comm.Allreduce(y[begin:end].dot(Ar[begin:end]).get(), nu_cpu)
         comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         nu = cp.asarray(nu_cpu)
         mu = cp.asarray(mu_cpu)
