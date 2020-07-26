@@ -99,17 +99,15 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     s = cp.empty(N, T)
     rs = cp.empty(1, T)
     ss = cp.empty(1, T)
-    # nu = cp.empty(1, T)
-    # mu = cp.empty(1, T)
-    numu = cp.empty(2, T)
+    nu = cp.empty(1, T)
+    mu = cp.empty(1, T)
     # cpu
     Ar_cpu = np.empty(N, T)
     y_cpu = np.empty(N, T)
     rs_cpu = np.empty(1, T)
     ss_cpu = np.empty(1, T)
-    # nu_cpu = np.empty(1, T)
-    # mu_cpu = np.empty(1, T)
-    numu_cpu = np.empty(2, T)
+    nu_cpu = np.empty(1, T)
+    mu_cpu = np.empty(1, T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
@@ -148,16 +146,11 @@ def _mrr_gpu(A, b, epsilon, T, pu):
         Ar = cp.asarray(Ar_cpu)
         comm.Scatter(y.get(), y_cpu[begin:end])
         y[begin:end] = cp.asarray(y_cpu[begin:end])
-        # comm.Allreduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
-        # comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
-        numu[0] = y[begin:end].dot(local_Ar)
-        numu[1] = y[begin:end].dot(y[begin:end])
-        comm.Allreduce(numu.get(), numu_cpu)
-        # nu = cp.asarray(nu_cpu)
-        # mu = cp.asarray(mu_cpu)
-        numu = cp.asarray(numu_cpu)
-        # gamma = nu / mu
-        gamma = numu[0] / numu[1]
+        comm.Allreduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
+        comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
+        nu = cp.asarray(nu_cpu)
+        mu = cp.asarray(mu_cpu)
+        gamma = nu / mu
         s = Ar - gamma * y
         comm.Allreduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
         comm.Allreduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
