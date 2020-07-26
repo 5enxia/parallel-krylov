@@ -69,14 +69,7 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         if isConverged:
             break
 
-        # 事前計算
-        # for j in range(1, (k + 2) + 1, 2):
-        for j in range(1, k + 2):
-            # local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
-            # local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
-            # comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
-            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
-            Ar[j] = cp.asarray(Ar_cpu[j])
+        # 基底計算
         # for j in range(1, (k + 1) + 1, 2):
         for j in range(1, k + 1):
             # local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
@@ -84,6 +77,13 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             # comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
             comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
+        # for j in range(1, (k + 2) + 1, 2):
+        for j in range(1, k + 2):
+            # local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
+            # local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
+            # comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
+            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            Ar[j] = cp.asarray(Ar_cpu[j])
         for j in range(2*k + 3):
             jj = j//2
             alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
