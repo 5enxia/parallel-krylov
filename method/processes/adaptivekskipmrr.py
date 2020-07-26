@@ -194,7 +194,7 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     begin, end = rank * local_N, (rank+1) * local_N
 
     # 初期化
-    Ax = cp.empty(N, T)
+    Ax = np.empty(N, T)
     Ar = cp.zeros((k + 2, N), T)
     Ay = cp.zeros((k + 1, N), T)
     rAr = cp.empty(1, T)
