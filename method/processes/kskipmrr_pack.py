@@ -83,8 +83,8 @@ def kskipmrr(A, b, epsilon, k, T, pu):
             # local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
             # local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
             # comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
-        alpha[j] = Ar[0][begin:end].dot(Ar[0][begin:end])
-        delta[j] = Ay[0][begin:end].dot(Ay[0][begin:end])
+        alpha[0] = Ar[0][begin:end].dot(Ar[0][begin:end])
+        delta[0] = Ay[0][begin:end].dot(Ay[0][begin:end])
         for j in range(1, 2*k+1):
             jj = j//2
             alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
