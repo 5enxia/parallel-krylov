@@ -36,6 +36,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     alpha_cpu = np.zeros(2*k + 3, T)
     beta_cpu = np.zeros(2*k + 2, T)
     delta_cpu = np.zeros(2*k + 1, T)
+    # packing
+    AyAr = cp.zeros((2, local_N), T)
+    AyAr_cpu = np.zeros((2, N), T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
