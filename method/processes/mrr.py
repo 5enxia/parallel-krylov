@@ -54,7 +54,6 @@ def _mrr_cpu(A, b, epsilon, T, pu):
         comm.Allreduce(y[begin:end].dot(y[begin:end]), mu)
         gamma = nu / mu
         s = Ar - gamma * y
-        comm.Scatter(s, s[begin:end])
         comm.Allreduce(r[begin:end].dot(s[begin:end]), rs)
         comm.Allreduce(s[begin:end].dot(s[begin:end]), ss)
         zeta = rs / ss
