@@ -35,11 +35,15 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    local_Ar = A[begin:end].dot(r)
-    comm.Allgather(local_Ar.get(), Ar_cpu)
+    # local_Ar = A[begin:end].dot(r)
+    # comm.Allgather(local_Ar.get(), Ar_cpu)
+    Ar[begin:end] = A[begin:end].dot(r)
+    comm.Allgather(Ar[begin:end].get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
-    rsss[0] = r[begin:end].dot(local_Ar)
-    rsss[1] = local_Ar.dot(local_Ar)
+    # rsss[0] = r[begin:end].dot(local_Ar)
+    # rsss[1] = local_Ar.dot(local_Ar)
+    rsss[0] = r[begin:end].dot(Ar[begin:end])
+    rsss[1] = Ar[begin:end].dot(Ar[begin:end])
     comm.Allreduce(rsss.get(), rsss_cpu)
     rsss = cp.asarray(rsss_cpu)
     zeta = rsss[0] / rsss[1]
@@ -59,12 +63,15 @@ def _mrr_gpu(A, b, epsilon, T, pu):
             break
 
         # 解の更新
-        local_Ar = A[begin:end].dot(r)
-        comm.Allgather(local_Ar.get(), Ar_cpu)
+        # local_Ar = A[begin:end].dot(r)
+        # comm.Allgather(local_Ar.get(), Ar_cpu)
+        Ar[begin:end] = A[begin:end].dot(r)
+        comm.Allgather(Ar[begin:end].get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
         comm.Scatter(y.get(), y_cpu[begin:end])
         y[begin:end] = cp.asarray(y_cpu[begin:end])
-        numu[0] = y[begin:end].dot(local_Ar)
+        # numu[0] = y[begin:end].dot(local_Ar)
+        numu[0] = y[begin:end].dot(Ar[begin:end])
         numu[1] = y[begin:end].dot(y[begin:end])
         comm.Allreduce(numu.get(), numu_cpu)
         numu = cp.asarray(numu_cpu)
