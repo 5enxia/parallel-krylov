@@ -36,6 +36,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     alpha_cpu = np.zeros(2*k + 3, T)
     beta_cpu = np.zeros(2*k + 2, T)
     delta_cpu = np.zeros(2*k + 1, T)
+    # packing
+    AyAr = cp.zeros((2, local_N), T)
+    AyAr_cpu = np.zeros((2, N), T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
@@ -72,18 +75,17 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         # 基底計算
         # for j in range(1, (k + 1) + 1, 2):
         for j in range(1, k + 1):
-            # local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
-            # local_Ay[1] = A[begin:end].T.dot(local_Ay[0][begin:end])
-            # comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
-            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
-            Ay[j] = cp.asarray(Ay_cpu[j])
-        # for j in range(1, (k + 2) + 1, 2):
-        for j in range(1, k + 2):
-            # local_Ar[0][begin:end] = A[begin:end].dot(Ar[j-1])
-            # local_Ar[1] = A[begin:end].T.dot(local_Ar[0][begin:end])
-            # comm.Reduce(local_Ar.get(), Ar_cpu[j:j+2])
-            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
-            Ar[j] = cp.asarray(Ar_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            # Ay[j] = cp.asarray(Ay_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            # Ar[j] = cp.asarray(Ar_cpu[j])
+            AyAr[0] = A[begin:end].dot(Ay[j-1])
+            AyAr[1] = A[begin:end].dot(Ar[j-1])
+            comm.Allgather(AyAr.get(), AyAr_cpu)
+            Ay[j] = cp.asarray(AyAr_cpu[0])
+            Ar[j] = cp.asarray(AyAr_cpu[1])
+        comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
+        Ar[k+1] = cp.asarray(Ar_cpu[k+1])
         for j in range(2*k + 3):
             jj = j//2
             alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
