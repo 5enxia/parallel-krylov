@@ -23,10 +23,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     # Ay = cp.zeros((k+2, N), T)
     rAr = cp.empty(1, T)
     ArAr = cp.empty(1, T)
-    # alpha = cp.zeros(2*k + 3, T)
-    # beta = cp.zeros(2*k + 2, T)
-    # delta = cp.zeros(2*k + 1, T)
-    abd = cp.zeros(3, 2*k+3, T)
+    alpha = cp.zeros(2*k + 3, T)
+    beta = cp.zeros(2*k + 2, T)
+    delta = cp.zeros(2*k + 1, T)
     # cpu
     Ar_cpu = np.zeros((k + 2, N), T)
     Ay_cpu = np.zeros((k + 1, N), T)
@@ -34,10 +33,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     # Ay_cpu = np.zeros((k+2, N), T)
     rAr_cpu = np.empty(1, T)
     ArAr_cpu = np.empty(1, T)
-    # alpha_cpu = np.zeros(2*k + 3, T)
-    # beta_cpu = np.zeros(2*k + 2, T)
-    # delta_cpu = np.zeros(2*k + 1, T)
-    abd_cpu = cp.zeros(3, 2*k+3, T)
+    alpha_cpu = np.zeros(2*k + 3, T)
+    beta_cpu = np.zeros(2*k + 2, T)
+    delta_cpu = np.zeros(2*k + 1, T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
@@ -86,46 +84,26 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             # comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
             comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
-        # for j in range(2*k + 3):
-        #     jj = j//2
-        #     alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-        # for j in range(1, 2*k + 2):
-        #     jj = j//2
-        #     beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-        # for j in range(2*k + 1):
-        #     jj = j//2
-        #     delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        # comm.Allreduce(alpha.get(), alpha_cpu)
-        # comm.Allreduce(beta.get(), beta_cpu)
-        # comm.Allreduce(delta.get(), delta_cpu)
-        # alpha = cp.asarray(alpha_cpu)
-        # beta = cp.asarray(beta_cpu)
-        # delta = cp.asarray(delta_cpu)
         for j in range(2*k + 3):
             jj = j//2
-            abd[0][j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+            alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
         for j in range(1, 2*k + 2):
             jj = j//2
-            abd[1][j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
+            beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
         for j in range(2*k + 1):
             jj = j//2
-            abd[2][j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        comm.Allreduce(abd.get(), abd_cpu)
-        abd = cp.asarray(abd_cpu)
+            delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
+        comm.Allreduce(alpha.get(), alpha_cpu)
+        comm.Allreduce(beta.get(), beta_cpu)
+        comm.Allreduce(delta.get(), delta_cpu)
+        alpha = cp.asarray(alpha_cpu)
+        beta = cp.asarray(beta_cpu)
+        delta = cp.asarray(delta_cpu)
 
         # MrRでの1反復(解と残差の更新)
-        # d = alpha[2] * delta[0] - beta[1] ** 2
-        # zeta = alpha[1] * delta[0] / d
-        # eta = -alpha[1] * beta[1] / d
-        # Ay[0] = eta * Ay[0] + zeta * Ar[1]
-        # z = eta * z - zeta * Ar[0]
-        # Ar[0] -= Ay[0]
-        # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
-        # Ar[1] = cp.asarray(Ar_cpu[1])
-        # x -= z
-        d = abd[0][2] * abd[2][0] - abd[1][1] ** 2
-        zeta = abd[0][1] * abd[2][0] / d
-        eta = -abd[0][1] * abd[1][1] / d
+        d = alpha[2] * delta[0] - beta[1] ** 2
+        zeta = alpha[1] * delta[0] / d
+        eta = -alpha[1] * beta[1] / d
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
@@ -134,36 +112,21 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         x -= z
 
         # MrRでのk反復
-        # for j in range(k):
-        #     delta[0] = zeta ** 2 * alpha[2] + eta * zeta * beta[1]
-        #     alpha[0] -= zeta * alpha[1]
-        #     delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
-        #     beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
-        #     alpha[1] = -beta[1]
-        #     for l in range(2, 2 * (k - j) + 1):
-        #         delta[l] = eta ** 2 * delta[l] + 2 * eta * zeta * beta[l+1] + zeta ** 2 * alpha[l + 2]
-        #         tau = eta * beta[l] + zeta * alpha[l + 1]
-        #         beta[l] = tau - delta[l]
-        #         alpha[l] -= tau + beta[l]
-        #     # 解と残差の更新
-        #     d = alpha[2] * delta[0] - beta[1] ** 2
-        #     zeta = alpha[1] * delta[0] / d
-        #     eta = -alpha[1] * beta[1] / d
         for j in range(k):
-            abd[2][0] = zeta ** 2 * abd[0][2] + eta * zeta * abd[1][1]
-            abd[0][0] -= zeta * abd[0][1]
-            abd[2][1] = eta ** 2 * abd[2][1] + 2 * eta * zeta * abd[1][2] + zeta ** 2 * abd[0][3]
-            abd[1][1] = eta * abd[1][1] + zeta * abd[0][2] - abd[2][1]
-            abd[0][1] = -abd[1][1]
+            delta[0] = zeta ** 2 * alpha[2] + eta * zeta * beta[1]
+            alpha[0] -= zeta * alpha[1]
+            delta[1] = eta ** 2 * delta[1] + 2 * eta * zeta * beta[2] + zeta ** 2 * alpha[3]
+            beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
+            alpha[1] = -beta[1]
             for l in range(2, 2 * (k - j) + 1):
-                abd[2][l] = eta ** 2 * abd[2][l] + 2 * eta * zeta * abd[1][l+1] + zeta ** 2 * abd[0][l + 2]
-                tau = eta * abd[1][l] + zeta * abd[0][l + 1]
-                abd[1][l] = tau - abd[2][l]
-                abd[0][l] -= tau + abd[1][l]
+                delta[l] = eta ** 2 * delta[l] + 2 * eta * zeta * beta[l+1] + zeta ** 2 * alpha[l + 2]
+                tau = eta * beta[l] + zeta * alpha[l + 1]
+                beta[l] = tau - delta[l]
+                alpha[l] -= tau + beta[l]
             # 解と残差の更新
-            d = abd[0][2] * abd[2][0] - abd[1][1] ** 2
-            zeta = abd[0][1] * abd[2][0] / d
-            eta = -abd[0][1] * abd[1][1] / d
+            d = alpha[2] * delta[0] - beta[1] ** 2
+            zeta = alpha[1] * delta[0] / d
+            eta = -alpha[1] * beta[1] / d
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
