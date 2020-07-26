@@ -23,7 +23,6 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     numu = cp.empty(2, T)
     # cpu
     Ar_cpu = np.empty(N, T)
-    y_cpu = np.empty(N, T)
     rsss_cpu = np.empty(2, T)
     numu_cpu = np.empty(2, T)
 
@@ -35,8 +34,6 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    # Ar[begin:end] = A[begin:end].dot(r)
-    # comm.Allgather(Ar[begin:end].get(), Ar_cpu)
     comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
     rsss[0] = r[begin:end].dot(Ar[begin:end])
@@ -60,12 +57,8 @@ def _mrr_gpu(A, b, epsilon, T, pu):
             break
 
         # 解の更新
-        # Ar[begin:end] = A[begin:end].dot(r)
-        # comm.Allgather(Ar[begin:end].get(), Ar_cpu)
         comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
-        # comm.Scatter(y.get(), y_cpu[begin:end])
-        # y[begin:end] = cp.asarray(y_cpu[begin:end])
         numu[0] = y[begin:end].dot(Ar[begin:end])
         numu[1] = y[begin:end].dot(y[begin:end])
         comm.Allreduce(numu.get(), numu_cpu)
