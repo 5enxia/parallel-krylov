@@ -141,11 +141,8 @@ def _mrr_gpu(A, b, epsilon, T, pu):
             break
 
         # 解の更新
-        local_Ar = A[begin:end].dot(r)
-        comm.Allgather(local_Ar.get(), Ar_cpu)
+        comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
-        comm.Scatter(y.get(), y_cpu[begin:end])
-        y[begin:end] = cp.asarray(y_cpu[begin:end])
         comm.Allreduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
         comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         nu = cp.asarray(nu_cpu)

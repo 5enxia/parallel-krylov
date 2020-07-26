@@ -32,18 +32,16 @@ def kskipmrr(A, b, epsilon, k, T, pu):
     alpha_cpu = np.zeros(2*k + 3, T)
     beta_cpu = np.zeros(2*k + 2, T)
     delta_cpu = np.zeros(2*k + 1, T)
-    # local
-    l_A = A[begin:end]
 
     # 初期残差
-    comm.Allgather(l_A.dot(x).get(), Ax)
+    comm.Allgather(A[begin:end].dot(x).get(), Ax)
     Ar[0] = b - cp.asarray(Ax)
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='k-skip MrR', k=k)
-    Ar[1][begin:end] = l_A.dot(Ar[0])
+    Ar[1][begin:end] = A[begin:end].dot(Ar[0])
     comm.Allgather(Ar[1][begin:end].get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
     comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]).get(), rAr_cpu)
