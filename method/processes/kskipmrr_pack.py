@@ -36,19 +36,20 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     alpha_cpu = np.zeros(2*k + 3, T)
     beta_cpu = np.zeros(2*k + 2, T)
     delta_cpu = np.zeros(2*k + 1, T)
-    # packing
-    AyAr = cp.zeros((2, local_N), T)
-    AyAr_cpu = np.zeros((2, N), T)
+    # local
+    l_A = A[begin:end]
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    # comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    comm.Allgather(l_A.dot(x).get(), Ax)
     Ar[0] = b - cp.asarray(Ax)
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='k-skip MrR', k=k)
-    Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+    # Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+    Ar[1][begin:end] = l_A.dot(Ar[0])
     comm.Allgather(Ar[1][begin:end].get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
     comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]).get(), rAr_cpu)
@@ -78,11 +79,14 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             # local_Ay[0][begin:end] = A[begin:end].dot(Ay[j-1])
             # local_Ay[1] = A[begin:end].T.dot(local_Ay[0][begin:end])
             # comm.Reduce(local_Ay.get(), Ay_cpu[j:j+2])
-            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            comm.Allgather(l_A.dot(Ay[j-1]).get(), Ay_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
-            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            comm.Allgather(l_A.dot(Ar[j-1]).get(), Ar_cpu[j])
             Ar[j] = cp.asarray(Ar_cpu[j])
-        comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
+        # comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
+        comm.Allgather(l_A.dot(Ar[k]).get(), Ar_cpu[k+1])
         Ar[k+1] = cp.asarray(Ar_cpu[k+1])
         # for j in range(1, (k + 2) + 1, 2):
         # for j in range(1, k + 2):
@@ -114,7 +118,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+        # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+        comm.Allgather(l_A.dot(Ar[0]).get(), Ar_cpu[1])
         Ar[1] = cp.asarray(Ar_cpu[1])
         x -= z
 
@@ -137,7 +142,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+            # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+        comm.Allgather(l_A.dot(Ar[0]).get(), Ar_cpu[1])
             Ar[1] = cp.asarray(Ar_cpu[1])
             x -= z
 
