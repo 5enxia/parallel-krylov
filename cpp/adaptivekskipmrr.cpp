@@ -1,42 +1,50 @@
-#include "MyBlas.h"
+#include <string>
+
+#include "util/MyTypes.h"
+#include "util/MyBlas.h"
+#include "util/MyNpy.h"
+#include "util/MyTimer.h"
+
+#include "cnpy.h" // npy
 
 using namespace std;
+using namespace MyTypes;
+using namespace MyNpy;
+using namespace MyBlas;
+using namespace cnpy;
 
-template<typename T>
-vector<T> mrr(const Matrix &A, const vector<T> &b, const double epsilon, const int k);
+vector<double> adaptivekskipmrr(const Matrix &A, const vector<double> &b, const double epsilon, int k);
 
 int main() {
-  Matrix A = {
-		{5.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{2.0, 5.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 2.0, 5.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 2.0, 5.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 2.0, 5.0, 2.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 2.0, 5.0, 2.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 5.0, 2.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 5.0, 2.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 5.0, 2.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 5.0}
-	};
-	vector<double> b = {3.0, 1.0, 4.0, 0.0, 5.0, -1.0, 6.0, -2.0, 7.0, -15.0};
-  const double epsilon = 1e-8;
-  int k = 0;
+  string matrixFilePath = "../data/matrix.npy";
+  string vectorFilePath = "../data/vector.npy";
 
+  Matrix A = loadMatrix(matrixFilePath);
+  vector<double> b = loadVector(vectorFilePath);
+  const double epsilon = 1e-8;
+  const unsigned int k = 0; 
+
+  // timer
+  std::chrono::system_clock::time_point  start, end;
+  start = std::chrono::system_clock::now();
   auto x = adaptivekskipmrr(A, b, epsilon, k);
-  for(auto e: x) cout << e << endl;
+  end = std::chrono::system_clock::now();
+  double elapsed = chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+  cout << elapsed << "ms"<< endl;
+  printVec(x);
+  return 0;
 }
 
-template<typename T>
-vector<T> adaptivekskipmrr(const Matrix &A, const vector<T> &b, const double epsilon, int k){
+vector<double> adaptivekskipmrr(const Matrix &A, const vector<double> &b, const double epsilon, int k) {
   const ul N = A.size();
   const ul max_iter = N*2;
   const double b_norm = vecvec(b, b);
-	vector<T> x(N, 0.0);
-  vector<T> pre_x(N, 0.0);
+	vector<double> x(N, 0.0);
+  vector<double> pre_x(N, 0.0);
 
   // 初期化
-  vv Ar(k + 3, vector<double>(N));
-  vv Ay(k + 2, vector<double>(N));
+  vector<vector<double>> Ar(k + 3, vector<double>(N));
+  vector<vector<double>> Ay(k + 2, vector<double>(N));
   vector<double> alpha(2*k+3);
   vector<double> beta(2*k+2);
   vector<double> delta(2*k+1);
@@ -66,8 +74,8 @@ vector<T> adaptivekskipmrr(const Matrix &A, const vector<T> &b, const double eps
       x = pre_x;
       Ar[0] = b - matvec(A, x);
       Ar[1] = matvec(A, Ar[0]);
-      rAr = vecvec(Ar[0], Ar[1]);
-      ArAr = vecvec(Ar[1], Ar[1]);
+      double rAr = vecvec(Ar[0], Ar[1]);
+      double ArAr = vecvec(Ar[1], Ar[1]);
       zeta = rAr / ArAr;
       Ay[0] = zeta * Ar[1];
       z = -zeta * Ar[0];
@@ -76,14 +84,15 @@ vector<T> adaptivekskipmrr(const Matrix &A, const vector<T> &b, const double eps
 
       i++;
       index++;
-      residual = norm(Ar[0], Ar[0]) / b_norm
+      residual = vecvec(Ar[0], Ar[0]) / b_norm;
       
       // kを1下げる
-      if k > 1:
-          k -= 1
-    } else {
-      pre_residual = residual 
-      pre_x = x
+      if (k > 1) {
+        k -= 1;
+      } else {
+        pre_residual = residual;
+        pre_x = x;
+      }
     }
 
     if (residual < epsilon) break;
