@@ -293,8 +293,6 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
         comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
         Ar[k+1] = cp.asarray(Ar_cpu[k+1])
 
-        krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
-
         # 係数計算
         alpha[0] = Ar[0][begin:end].dot(Ar[0][begin:end])
         delta[0] = Ay[0][begin:end].dot(Ay[0][begin:end])
@@ -312,6 +310,8 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
         alpha = cp.asarray(alpha_cpu)
         beta = cp.asarray(beta_cpu)
         delta = cp.asarray(delta_cpu)
+
+        krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
