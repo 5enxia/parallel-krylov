@@ -10,3 +10,8 @@
 *.ipynb
 /origin
 /data/*.txt
+*.npy
+*.npz
+*.dat
+*.mtx
+*.zip
