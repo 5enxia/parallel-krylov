@@ -55,6 +55,7 @@ def load_vector(path: str, version: str, T=np.float64):
 
         return np.array(arr, T)
 
+
 parser = argparse.ArgumentParser(description='.txt to .npy converter')
 parser.add_argument("path", help="data file path")
 parser.add_argument("-t", "--type", help="vector file")
@@ -72,5 +73,3 @@ if args.matrix:
 elif args.vector:
     vector = load_vector(args.path, args.type)
     np.save(f'{path}/{filename}.npy', vector)
-
-print(args)
