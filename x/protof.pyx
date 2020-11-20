@@ -1,6 +1,5 @@
 cimport numpy
 from mpi4py cimport MPI
-from mpi4py.MPI cimport Intracomm as IntracommType
 
 def f(
     MPI.Comm comm,

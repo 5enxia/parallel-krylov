@@ -34,5 +34,5 @@ def t(callback):
     print(perf_counter() - s)
 
 
-t(f)
+#t(f)
 t(g)
