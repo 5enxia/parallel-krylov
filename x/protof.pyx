@@ -1,18 +1,21 @@
-import numpy as np
-import cupy as cp
-from mpi4py import MPI
+cimport numpy
+from mpi4py cimport MPI
+from mpi4py.MPI cimport Intracomm as IntracommType
 
 def f(
+    MPI.Comm comm,
 	int k,
-	cp.ndarray A,
-	cp.ndarray x,
-	cp.ndarray z,
-	cp.ndarray Ar,
-	cp.ndarray Ay,
-	cp.ndarray alpha,
-	cp.ndarray beta,
-	cp.ndarray delta,
-	np.ndarray Ar_cpu,
+	int begin,
+	int end,
+	numpy.ndarray A,
+	numpy.ndarray x,
+	numpy.ndarray z,
+	numpy.ndarray Ar,
+	numpy.ndarray Ay,
+	numpy.ndarray alpha,
+	numpy.ndarray beta,
+	numpy.ndarray delta,
+	numpy.ndarray Ar_cpu,
 	):
 
 	cdef int j, l
@@ -26,7 +29,7 @@ def f(
 	z = eta * z - zeta * Ar[0]
 	Ar[0] -= Ay[0]
 	x -= z
-	
+
 	# MrRでのk反復
 	for j in range(k):
 		zz = zeta ** 2
@@ -52,8 +55,7 @@ def f(
 		zeta = alpha[1] * delta[0] / d
 		eta = -alpha[1] * beta[1] / d
 		##
-		MPI.COMM_WORLD.Allgather(A.dot(Ar[0]).get(), Ar_cpu[1])
-		Ar[1] = cp.asarray(Ar_cpu[1])
+		comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
 		Ay[0] = eta * Ay[0] + zeta * Ar[1]
 		z = eta * z - zeta * Ar[0]
 		Ar[0] -= Ay[0]

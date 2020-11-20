@@ -7,6 +7,9 @@
 /*/*/*/*/*/__pycahe__
 
 /test
+x/*.sh
+x/*.c
+x/build
 
 *.txt
 *.npy
@@ -16,3 +19,5 @@
 *.zip
 # *.ipynb
 *.ipynb_checkpoints
+*.sh.o*
+*.so
