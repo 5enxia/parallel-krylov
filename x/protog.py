@@ -1,6 +1,11 @@
 import cupy
+from time import perf_counter
+
 
 def g(comm, k, begin, end, A, x, z, Ar, Ay, alpha, beta, delta, Ar_cpu):
+	dt = 0
+	elapsed = 0
+
 	# MrRでの1反復(解と残差の更新)
 	d = alpha[2] * delta[0] - beta[1] ** 2
 	zeta = alpha[1] * delta[0] / d
@@ -36,11 +41,19 @@ def g(comm, k, begin, end, A, x, z, Ar, Ay, alpha, beta, delta, Ar_cpu):
 		eta = -alpha[1] * beta[1] / d
 		##
 
+		dt = perf_counter()
+
 		# comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
-		comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+		# comm.Allgather(A.dot(Ar[0]), Ar[1])
+		# comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+		comm.Allgather(A.dot(Ar[0]).get(), Ar_cpu[1])
 		Ar[1] = cupy.array(Ar_cpu[1])
+
+		elapsed += perf_counter() - dt
 
 		Ay[0] = eta * Ay[0] + zeta * Ar[1]
 		z = eta * z - zeta * Ar[0]
 		Ar[0] -= Ay[0]
 		x -= z
+
+	print(comm.Get_rank(), elapsed)
