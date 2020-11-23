@@ -4,7 +4,9 @@ import numpy
 
 name = ''
 target = 'scalar_iteration'
+#target = 'hoge'
 include_path = [numpy.get_include()]
+
 setup(
     name=f'{name}',
     ext_modules=cythonize(

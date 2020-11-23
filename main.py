@@ -24,7 +24,7 @@ pu = ['cpu', 'gpu'][1]
 #m = ['kskipmrr', 'adaptivekskipmrr'][1]
 #nop = 16
 k = int(sys.argv[1])
-nop = sys.argv[2]
+nop = int(sys.argv[2])
 l = sys.argv[3]
 #m = sys.argv[4]
 #m = 'kskipmrr'
@@ -47,9 +47,9 @@ time, nosl, residual, k_history, krylov_base_time = akmrr(A, b, epsilon, k, T, p
 
 r = 'result'
 now = datetime.datetime.now()
-attempt = '05'
+attempt = '02'
 date = f'{now.year}{now.month:02}{now.day:02}_{attempt}'
-dirs = f'{r}/{date}/{m}_{t}{l}_k{k:02}_{pu}{nop}'
+dirs = f'{r}/{date}/{m}_{t}{l}_k{k:02}_{pu}{nop:02}'
 try:
     os.makedirs(dirs)
 except Exception as expt:
