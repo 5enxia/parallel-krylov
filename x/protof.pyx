@@ -1,22 +1,42 @@
 cimport numpy
 from mpi4py cimport MPI
 
+
+# def f(
+# 	MPI.Comm comm,
+# 	int k,
+# 	int begin,
+# 	int end,
+# 	numpy.ndarray A,
+# 	numpy.ndarray x,
+# 	numpy.ndarray z,
+# 	numpy.ndarray Ar,
+# 	numpy.ndarray Ay,
+# 	numpy.ndarray alpha,
+# 	numpy.ndarray beta,
+# 	numpy.ndarray delta,
+# 	numpy.ndarray Ar_cpu,
+# 	):
+
+
+import cupy
+
+
 def f(
-    MPI.Comm comm,
+  MPI.Comm comm,
 	int k,
 	int begin,
 	int end,
-	numpy.ndarray A,
-	numpy.ndarray x,
-	numpy.ndarray z,
-	numpy.ndarray Ar,
-	numpy.ndarray Ay,
-	numpy.ndarray alpha,
-	numpy.ndarray beta,
-	numpy.ndarray delta,
+	A,
+	x,
+	z,
+	Ar,
+	Ay,
+	alpha,
+	beta,
+	delta,
 	numpy.ndarray Ar_cpu,
 	):
-
 	cdef int j, l
 	cdef double zz, ee, ez, d, zeta, eta
 
@@ -54,7 +74,11 @@ def f(
 		zeta = alpha[1] * delta[0] / d
 		eta = -alpha[1] * beta[1] / d
 		##
-		comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+
+		# comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+		comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+		Ar[1] = cupy.array(Ar_cpu[1])
+
 		Ay[0] = eta * Ay[0] + zeta * Ar[1]
 		z = eta * z - zeta * Ar[0]
 		Ar[0] -= Ay[0]
