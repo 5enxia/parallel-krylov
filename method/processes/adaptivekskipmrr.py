@@ -174,6 +174,7 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     init_gpu(rank)
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     begin, end = rank * local_N, (rank+1) * local_N
+    A = A[begin:end]
 
     # 初期化
     Ax = np.empty(N, T)
@@ -199,7 +200,8 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     krylov_base_times = np.zeros(max_iter, T)  # time
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    # comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    comm.Allgather(A.dot(x).get(), Ax)
     Ar[0] = b - cp.asarray(Ax)
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -211,9 +213,10 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     if rank == 0:
         start_time = start(method_name='adaptive k-skip MrR', k=k)
 
-    krylov_base_times[0] = krylov_base_start()  # time
+    # krylov_base_times[0] = krylov_base_start()  # time
 
-    Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+    # Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+    Ar[1][begin:end] = A.dot(Ar[0])
     comm.Allgather(Ar[1][begin:end].get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
     comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]).get(), rAr_cpu)
@@ -226,7 +229,7 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
     Ar[0] -= Ay[0]
     x -= z
 
-    krylov_base_times[0] = krylov_base_finish(krylov_base_times[0])  # time
+    # krylov_base_times[0] = krylov_base_finish(krylov_base_times[0])  # time
 
     i = 1
     index = 1
@@ -244,18 +247,20 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
             # 解と残差を再計算
             x = pre_x.copy()
 
-            comm.Allgather(A[begin:end].dot(x).get(), Ax)
+            # comm.Allgather(A[begin:end].dot(x).get(), Ax)
+            comm.Allgather(A.dot(x).get(), Ax)
             Ar[0] = b - cp.asarray(Ax)
-            Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+            # Ar[1][begin:end] = A[begin:end].dot(Ar[0])
+            Ar[1][begin:end] = A.dot(Ar[0])
             comm.Allgather(Ar[1][begin:end].get(), Ar_cpu[1])
             Ar[1] = cp.asarray(Ar_cpu[1])
 
-            krylov_base_times[index] = krylov_base_start()  # time
+            # krylov_base_times[index] = krylov_base_start()  # time
 
             comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]).get(), rAr_cpu)
             comm.Allreduce(Ar[1][begin:end].dot(Ar[1][begin:end]).get(), ArAr_cpu)
 
-            krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
+            # krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
 
             rAr = cp.asarray(rAr_cpu)
             ArAr = cp.asarray(ArAr_cpu)
@@ -284,11 +289,14 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
 
         # 基底計算
         for j in range(1, k + 1):
-            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
-            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            comm.Allgather(A.dot(Ar[j-1]).get(), Ar_cpu[j])
+            comm.Allgather(A.dot(Ay[j-1]).get(), Ay_cpu[j])
             Ar[j] = cp.asarray(Ar_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
-        comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
+        # comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
+        comm.Allgather(A.dot(Ar[k]).get(), Ar_cpu[k+1])
         Ar[k+1] = cp.asarray(Ar_cpu[k+1])
 
         # 係数計算
@@ -309,49 +317,49 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
         beta = cp.asarray(beta_cpu)
         delta = cp.asarray(delta_cpu)
 
-        # MrRでの1反復(解と残差の更新)
-        d = alpha[2] * delta[0] - beta[1] ** 2
-        zeta = alpha[1] * delta[0] / d
-        eta = -alpha[1] * beta[1] / d
-        Ay[0] = eta * Ay[0] + zeta * Ar[1]
-        z = eta * z - zeta * Ar[0]
-        Ar[0] -= Ay[0]
-        x -= z
-
         krylov_base_times[index] = krylov_base_start()  # time
-
         ########################################################
-        # MrRでのk反復
-        for j in range(k):
-            zz = zeta ** 2
-            ee = eta ** 2
-            ez = eta * zeta
-            ##
-            delta[0] = zz * alpha[2] + ez * beta[1]
-            alpha[0] -= zeta * alpha[1]
-            ##
-            delta[1] = ee * delta[1] + 2 * eta * zeta * beta[2] + zz * alpha[3]
-            beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
-            alpha[1] = -beta[1]
-            for l in range(2, 2 * (k - j) + 1):
-                ##
-                delta[l] = ee * delta[l] + 2 * ez * beta[l+1] + zz * alpha[l + 2]
-                tau = eta * beta[l] + zeta * alpha[l + 1]
-                ##
-                beta[l] = tau - delta[l]
-                alpha[l] -= tau + beta[l]
-            # 解と残差の更新
-            d = alpha[2] * delta[0] - beta[1] ** 2
-            ##
-            zeta = alpha[1] * delta[0] / d
-            eta = -alpha[1] * beta[1] / d
-            ##
-            comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
-            Ar[1] = cp.asarray(Ar_cpu[1])
-            Ay[0] = eta * Ay[0] + zeta * Ar[1]
-            z = eta * z - zeta * Ar[0]
-            Ar[0] -= Ay[0]
-            x -= z
+        # # MrRでの1反復(解と残差の更新)
+        # d = alpha[2] * delta[0] - beta[1] ** 2
+        # zeta = alpha[1] * delta[0] / d
+        # eta = -alpha[1] * beta[1] / d
+        # Ay[0] = eta * Ay[0] + zeta * Ar[1]
+        # z = eta * z - zeta * Ar[0]
+        # Ar[0] -= Ay[0]
+        # x -= z
+
+        # # MrRでのk反復
+        # for j in range(k):
+        #     zz = zeta ** 2
+        #     ee = eta ** 2
+        #     ez = eta * zeta
+        #     ##
+        #     delta[0] = zz * alpha[2] + ez * beta[1]
+        #     alpha[0] -= zeta * alpha[1]
+        #     ##
+        #     delta[1] = ee * delta[1] + 2 * eta * zeta * beta[2] + zz * alpha[3]
+        #     beta[1] = eta * beta[1] + zeta * alpha[2] - delta[1]
+        #     alpha[1] = -beta[1]
+        #     for l in range(2, 2 * (k - j) + 1):
+        #         ##
+        #         delta[l] = ee * delta[l] + 2 * ez * beta[l+1] + zz * alpha[l + 2]
+        #         tau = eta * beta[l] + zeta * alpha[l + 1]
+        #         ##
+        #         beta[l] = tau - delta[l]
+        #         alpha[l] -= tau + beta[l]
+        #     # 解と残差の更新
+        #     d = alpha[2] * delta[0] - beta[1] ** 2
+        #     ##
+        #     zeta = alpha[1] * delta[0] / d
+        #     eta = -alpha[1] * beta[1] / d
+        #     ##
+        #     # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+        #     comm.Allgather(A.dot(Ar[0]).get(), Ar_cpu[1])
+        #     Ar[1] = cp.asarray(Ar_cpu[1])
+        #     Ay[0] = eta * Ay[0] + zeta * Ar[1]
+        #     z = eta * z - zeta * Ar[0]
+        #     Ar[0] -= Ay[0]
+        #     x -= z
         ########################################################
 
         krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
