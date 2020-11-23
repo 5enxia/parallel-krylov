@@ -1,5 +1,8 @@
 cimport numpy
 from mpi4py cimport MPI
+from time import perf_counter
+
+# import cupy
 
 
 # def f(
@@ -19,9 +22,6 @@ from mpi4py cimport MPI
 # 	):
 
 
-import cupy
-
-
 def f(
   MPI.Comm comm,
 	int k,
@@ -37,6 +37,8 @@ def f(
 	delta,
 	numpy.ndarray Ar_cpu,
 	):
+
+	cdef double dt, elapsed = 0
 	cdef int j, l
 	cdef double zz, ee, ez, d, zeta, eta
 
@@ -75,11 +77,20 @@ def f(
 		eta = -alpha[1] * beta[1] / d
 		##
 
+		dt = perf_counter()
+
 		# comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
-		comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
-		Ar[1] = cupy.array(Ar_cpu[1])
+		comm.Allgather(A.dot(Ar[0]), Ar[1])
+
+		# comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+		# comm.Allgather(A.dot(Ar[0]).get(), Ar_cpu[1])
+		# Ar[1] = cupy.array(Ar_cpu[1])
+
+		elapsed += perf_counter() - dt
 
 		Ay[0] = eta * Ay[0] + zeta * Ar[1]
 		z = eta * z - zeta * Ar[0]
 		Ar[0] -= Ay[0]
 		x -= z
+
+	print(comm.Get_rank(), elapsed)
