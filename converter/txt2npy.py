@@ -1,6 +1,6 @@
-import json
-
+import argparse
 import numpy as np
+import os
 
 
 def load_matrix(path: str, version: str, T=np.float64):
@@ -56,28 +56,20 @@ def load_vector(path: str, version: str, T=np.float64):
         return np.array(arr, T)
 
 
-def load_condition_params(path: str, T=np.float64):
-    """condition.jsonから数値条件を読み込む
+parser = argparse.ArgumentParser(description='.txt to .npy converter')
+parser.add_argument("path", help="data file path")
+parser.add_argument("-t", "--type", help="vector file")
+parser.add_argument("-m", "--matrix", action="store_true",
+                    help="matrix file")
+parser.add_argument("-v", "--vector", action="store_true",
+                    help="vector file")
 
-    Args:
-        path (str): ファイルパス
-        T ([numpy.dtype], optional): 浮動小数精度
-
-    Returns:
-        float: 収束判定子
-        int: 次元数
-        float: 第一対角要素
-        float: 第二対角要素
-        int: k
-        numpy.dtype: 浮動小数精度
-    """
-    with open(path) as f:
-        params = json.load(f)
-
-        epsilon = params['epsilon']
-        N = params['N']
-        diag = params['diag']
-        sub_diag = params['sub_diag']
-        k = params['k']
-
-        return epsilon, N, diag, sub_diag, k 
+args = parser.parse_args()
+path, basename = os.path.split(args.path)
+filename, ext = os.path.splitext(basename)
+if args.matrix:
+    matrix = load_matrix(args.path, args.type)
+    np.save(f'{path}/{filename}.npy', matrix)
+elif args.vector:
+    vector = load_vector(args.path, args.type)
+    np.save(f'{path}/{filename}.npy', vector)

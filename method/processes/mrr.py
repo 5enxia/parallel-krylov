@@ -21,47 +21,41 @@ def _mrr_cpu(A, b, epsilon, T, pu):
     mu = np.empty(1, T)
 
     # 初期残差
-    comm.Gather(A[begin:end].dot(x), Ax)
+    comm.Allgather(A[begin:end].dot(x), Ax)
     r = b - Ax
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    comm.Bcast(r)
-    local_Ar = A[begin:end].dot(r)
-    comm.Gather(local_Ar, Ar)
-    comm.Reduce(r[begin:end].dot(local_Ar), rs)
-    comm.Reduce(local_Ar.dot(local_Ar), ss)
+    comm.Allgather(A[begin:end].dot(r), Ar)
+    comm.Allreduce(r[begin:end].dot(Ar[begin:end]), rs)
+    comm.Allreduce(Ar[begin:end].dot(Ar[begin:end]), ss)
     zeta = rs / ss
     y = zeta * Ar
     z = -zeta * r
     r -= y
     x -= z
-    num_of_solution_updates[1] = 1
+
     i = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        isConverged = np.array([residual[i] < epsilon], bool)
-        comm.Bcast(isConverged)
+        isConverged = residual[i] < epsilon
         if isConverged:
             break
 
         # 解の更新
-        comm.Bcast(r)
-        local_Ar = A[begin:end].dot(r)
-        comm.Gather(local_Ar, Ar)
-        comm.Scatter(y, y[begin:end])
-        comm.Reduce(y[begin:end].dot(local_Ar), nu)
-        comm.Reduce(y[begin:end].dot(y[begin:end]), mu)
+        comm.Allgather(A[begin:end].dot(r), Ar)
+        comm.Allreduce(y[begin:end].dot(Ar[begin:end]), nu)
+        comm.Allreduce(y[begin:end].dot(y[begin:end]), mu)
         gamma = nu / mu
         s = Ar - gamma * y
-        comm.Scatter(s, s[begin:end])
-        comm.Reduce(r[begin:end].dot(s[begin:end]), rs)
-        comm.Reduce(s[begin:end].dot(s[begin:end]), ss)
+        comm.Allreduce(r[begin:end].dot(s[begin:end]), rs)
+        comm.Allreduce(s[begin:end].dot(s[begin:end]), ss)
         zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
@@ -103,30 +97,24 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     mu = cp.empty(1, T)
     # cpu
     Ar_cpu = np.empty(N, T)
-    r_cpu = np.empty(N, T)
-    y_cpu = np.empty(N, T)
-    s_cpu = np.empty(N, T)
     rs_cpu = np.empty(1, T)
     ss_cpu = np.empty(1, T)
     nu_cpu = np.empty(1, T)
     mu_cpu = np.empty(1, T)
 
     # 初期残差
-    comm.Gather(A[begin:end].dot(x).get(), Ax)
+    comm.Allgather(A[begin:end].dot(x).get(), Ax)
     r = b - cp.asarray(Ax)
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR')
-    r_cpu = r.get()
-    comm.Bcast(r_cpu)
-    r = cp.asarray(r_cpu)
-    local_Ar = A[begin:end].dot(r)
-    comm.Gather(local_Ar.get(), Ar_cpu)
+    Ar = A[begin:end].dot(r)
+    comm.Allgather(Ar.get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
-    comm.Reduce(r[begin:end].dot(local_Ar).get(), rs_cpu)
-    comm.Reduce(local_Ar.dot(local_Ar).get(), ss_cpu)
+    comm.Allreduce(r[begin:end].dot(Ar[begin:end]).get(), rs_cpu)
+    comm.Allreduce(Ar[begin:end].dot(Ar[begin:end]).get(), ss_cpu)
     rs = cp.asarray(rs_cpu)
     ss = cp.asarray(ss_cpu)
     zeta = rs / ss
@@ -141,30 +129,21 @@ def _mrr_gpu(A, b, epsilon, T, pu):
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        isConverged = np.array([residual[i] < epsilon], bool)
-        comm.Bcast(isConverged)
+        isConverged = residual[i] < epsilon
         if isConverged:
             break
 
         # 解の更新
-        r_cpu = r.get()
-        comm.Bcast(r_cpu)
-        r = cp.asarray(r_cpu)
-        local_Ar = A[begin:end].dot(r)
-        comm.Gather(local_Ar.get(), Ar_cpu)
+        comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
         Ar = cp.asarray(Ar_cpu)
-        comm.Scatter(y.get(), y_cpu[begin:end])
-        y[begin:end] = cp.asarray(y_cpu[begin:end])
-        comm.Reduce(y[begin:end].dot(local_Ar).get(), nu_cpu)
-        comm.Reduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
+        comm.Allreduce(y[begin:end].dot(Ar[begin:end]).get(), nu_cpu)
+        comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         nu = cp.asarray(nu_cpu)
         mu = cp.asarray(mu_cpu)
         gamma = nu / mu
         s = Ar - gamma * y
-        comm.Scatter(s.get(), s_cpu[begin:end])
-        s[begin:end] = cp.asarray(s_cpu[begin:end])
-        comm.Reduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
-        comm.Reduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
+        comm.Allreduce(r[begin:end].dot(s[begin:end]).get(), rs_cpu)
+        comm.Allreduce(s[begin:end].dot(s[begin:end]).get(), ss_cpu)
         rs = cp.asarray(rs_cpu)
         ss = cp.asarray(ss_cpu)
         zeta = rs / ss

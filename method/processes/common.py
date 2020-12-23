@@ -16,6 +16,14 @@ def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
     return elapsed_time
 
 
+def krylov_base_start():
+    return MPI.Wtime()
+
+
+def krylov_base_finish(start_time):
+    return MPI.Wtime() - start_time
+
+
 def init_mpi():
     comm = MPI.COMM_WORLD
     return comm, comm.Get_rank(), comm.Get_size()

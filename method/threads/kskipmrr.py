@@ -14,8 +14,8 @@ def kskipmrr(A, b, epsilon, k, T, pu):
         A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pu)
 
     # 初期化
-    Ar = xp.empty((k + 3, N), T)
-    Ay = xp.empty((k + 2, N), T)
+    Ar = xp.empty((k + 2, N), T)
+    Ay = xp.empty((k + 1, N), T)
     alpha = xp.empty(2 * k + 3, T)
     beta = xp.empty(2 * k + 2, T)
     delta = xp.empty(2 * k + 1, T)

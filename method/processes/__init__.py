@@ -1,1 +1,5 @@
-__all__ = ['cpu, gpu']
+__all__ = [
+  'cpu',
+  'gpu',
+  'pyx'
+]
