@@ -3,6 +3,31 @@
 Krylov subspace methods module.
 Do not publish code before publishing paper.
 
+## dir
+
+- archive
+  - origin
+  - thread
+- converter
+- cpp
+  - archive
+  - docs
+  - npy
+  - util
+- doc
+- method
+  - build
+  - cpp
+  - origin
+  - process
+    - pyx
+    - rewite
+  - threads
+- plot
+- test
+- util
+- x
+
 ## requirements
 
 ### libs

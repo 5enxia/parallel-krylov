@@ -1,1 +1,4 @@
-__all__ = ['method', 'util']
+__all__ = [
+  'method',
+  'util'
+]
