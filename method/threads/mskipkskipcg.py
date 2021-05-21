@@ -1,7 +1,7 @@
 from .common import start, end, init
 
 
-def rskipkskipcg(A, b, epsilon, k, T, pu):
+def mskipkskipcg(A, b, epsilon, k, T, pu):
     if pu == 'cpu':
         import numpy as xp
         from numpy import dot
