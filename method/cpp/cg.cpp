@@ -13,11 +13,12 @@ using namespace MyNpy;
 using namespace MyBlas;
 using namespace cnpy;
 
-vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon);
+double cg(const Matrix &A, const vector<double> &b, const double epsilon);
+// vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon);
 
 int main() {
-  string matrixFilePath = "../data/matrix.npy";
-  string vectorFilePath = "../data/vector.npy";
+  string matrixFilePath = "/Users/takayasu/krylov/data/Meshless-Matrix-Reduced/matrix_EFG-2801.npy";
+  string vectorFilePath = "/Users/takayasu/krylov/data/Meshless-Matrix-Reduced/vector_EFG-2801.npy";
 
   Matrix A = loadMatrix(matrixFilePath);
   vector<double> b = loadVector(vectorFilePath);
@@ -27,18 +28,21 @@ int main() {
   // timer
   std::chrono::system_clock::time_point  start, end;
   start = std::chrono::system_clock::now();
-  auto x = cg(A, b, epsilon);
+  auto r = cg(A, b, epsilon);
   end = std::chrono::system_clock::now();
   double elapsed = chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-  cout << elapsed << "ms"<< endl;
+  cout << elapsed << "ms" << endl;
+  cout << "final residual:" << r << endl;
   return 0;
 }
 
-vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon){
+double cg(const Matrix &A, const vector<double> &b, const double epsilon){
+// vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon){
   const ui N = A.size();
   const ul max_iter = N * 2;
   const double b_norm = MyBlas::vecvec(b, b);
 	vector<double> x(N, 0.0);
+  double residual = 1;
 
   // 初期残差
 	vector<double> r = b - A * x;
@@ -51,7 +55,8 @@ vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon
   while (i < max_iter)
   {
     // 収束判定
-    double residual = vecvec(r, r) / b_norm;
+    // double residual = vecvec(r, r) / b_norm;
+    residual = vecvec(r, r) / b_norm;
     if (residual < epsilon) {
       break;
     }
@@ -68,5 +73,6 @@ vector<double> cg(const Matrix &A, const vector<double> &b, const double epsilon
     i++;
   }
 
-	return x;
+  return residual;
+	// return x;
 }
