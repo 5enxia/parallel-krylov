@@ -5,7 +5,7 @@ def _start(method_name='', k=None):
         method_name (str, optional): [手法名]. Defaults to ''.
         k ([int], optional): [kの値]. Defaults to None.
     """
-    print('# ============== INFO ================= #')
+    print('#', '='*17, 'INFO', '='*17, '#')
     print(f'Method:\t\t{ method_name }')
     print(f'initial_k:\t{ k }')
 
@@ -33,4 +33,4 @@ def _end(
     print(f'final residual:\t{ final_residual }')
     if final_k:
         print(f'final k:\t{final_k}')
-    print('# ===================================== #')
+    print('#', '='*38, '#')
