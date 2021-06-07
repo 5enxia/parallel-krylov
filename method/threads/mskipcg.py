@@ -1,7 +1,7 @@
 from .common import start, end, init
 
 
-def cg(A, b, epsilon, T, pu):
+def mskipcg(A, b, epsilon, T, pu):
     if pu == 'cpu':
         from numpy import dot
         from numpy.linalg import norm
@@ -18,7 +18,7 @@ def cg(A, b, epsilon, T, pu):
 
     # 反復計算
     i = 0
-    start_time = start(method_name='CG')
+    start_time = start(method_name='mskipCG')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
