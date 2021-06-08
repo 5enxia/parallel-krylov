@@ -99,7 +99,7 @@ namespace MyBlas {
 		int M = A.size();
 		int N = A[0].size();
 		for (int i = 0; i < M; i++) {
-			for (int j = 0; j < M; j++) {
+			for (int j = 0; j < N; j++) {
 				cout << A[i][j];
 			}
 			cout << endl;

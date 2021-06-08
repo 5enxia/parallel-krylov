@@ -1,11 +1,15 @@
-LDFLAGS := -L/usr/local/opt/openblas/lib/
-CPPFLAG := -I/usr/local/opt/openblas/include
+CC := g++ -std=c++11
+OPT := -Wall -Wextra -march=native -O2
 
-tmp:
-	g++ -std=c++11 -Wall -Wextra -march=native -O2 cg.cpp -lcnpy -I/usr/local/opt/openblas/include/ -L/usr/local/opt/openblas/lib -lopenblas -o cg
+BLASINCLUDE := -I/usr/local/opt/openblas/include
+BLASLIB := -L/usr/local/opt/openblas/lib/ -lopenblas
+APPLEBLAS := -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Headers/ -Framework Accelerate
+
+applecg:
+	$(CC) $(OPT) cg.cpp -lcnpy -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Headers/ -Framework Accelerate -o cg.out
 cg: cg
-	g++ -std=c++11 -Wall -Wextra -march=native -O2 cg.cpp -lcnpy -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Headers/ -Framework Accelerate -o cg
+	$(CC) $(OPT) cg.cpp -lcnpy $(BLASINCLUDE) $(BLASLIB) -o cg.out
 kcg: kskipcg
-	g++ -std=c++11 -Wall -Wextra -march=native -O2 kskipcg.cpp -lcnpy -I/usr/local/opt/openblas/include/ -L/usr/local/opt/openblas/lib -lopenblas -o kcg
+	$(CC) $(OPT) kskipcg.cpp -lcnpy $(BLASINCLUDE) $(BLASLIB) -o kskipcg.out
 kmrr: kskipmrr
-	g++ -std=c++11 -Wall -Wextra -march=native -O2 kskipmrr.cpp -lcnpy -I/usr/local/opt/openblas/include/ -L/usr/local/opt/openblas/lib -lopenblas -o kmrr
+	$(CC) $(OPT) kskipmrr.cpp -lcnpy $(BLASINCLUDE) $(BLASLIB) -o kskipmrr.out
