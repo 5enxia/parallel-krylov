@@ -15,7 +15,7 @@ path, basename = os.path.split(args.path)
 filename, ext = os.path.splitext(basename)
 
 # load npy
-npy = np.load(f'{path}/{filename}.npy')
+npy = np.load(args.path)
 
 # compress
 csr = csr_matrix(npy)
