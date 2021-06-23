@@ -19,12 +19,4 @@ def load_condition_params(path: str, T=np.float64):
         numpy.dtype: 浮動小数精度
     """
     with open(path) as f:
-        params = json.load(f)
-
-        epsilon = params['epsilon']
-        N = params['N']
-        diag = params['diag']
-        sub_diag = params['sub_diag']
-        k = params['k']
-
-        return epsilon, N, diag, sub_diag, k 
+        return json.load(f)

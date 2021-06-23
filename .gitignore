@@ -21,3 +21,4 @@ x/build
 *.ipynb_checkpoints
 *.sh.o*
 *.so
+*.out
