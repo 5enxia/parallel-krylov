@@ -1,5 +1,6 @@
 __all__ = [
     'loader',
     'precondition',
-    'toeplizmatrixgenerator'
+    'toeplizmatrixgenerator',
+    'checker'
  ]
