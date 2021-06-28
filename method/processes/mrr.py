@@ -167,13 +167,8 @@ def _mrr_gpu(A, b, epsilon, T, pu):
 
 def mrr(A, b, epsilon, T, pu):
     comm, rank, num_of_process = init_mpi()
-    if pu == 'cpu':
-        if rank == 0:
-            return _mrr_cpu(A, b, epsilon, T, pu)
-        else:
-            _mrr_cpu(A, b, epsilon, T, pu)
+    _mrr = _mrr_cpu if pu == 'cpu' else _mrr_gpu
+    if rank == 0:
+        return _mrr(A, b, epsilon, T, pu)
     else:
-        if rank == 0:
-            return _mrr_gpu(A, b, epsilon, T, pu)
-        else:
-            _mrr_gpu(A, b, epsilon, T, pu)
+        _mrr(A, b, epsilon, T, pu)

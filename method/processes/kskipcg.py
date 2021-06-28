@@ -236,13 +236,8 @@ def _kskipcg_gpu(A, b, epsilon, k, T):
 
 def kskipcg(A, b, epsilon, k, T, pu):
     comm, rank, num_of_process = init_mpi()
-    if pu == 'cpu':
-        if rank == 0:
-            return _kskipcg_cpu(A, b, epsilon, k, T)
-        else:
-            _kskipcg_cpu(A, b, epsilon, k, T)
+    _kskipcg = _kskipcg_cpu if pu == 'cpu' else _kskipcg_gpu
+    if rank == 0:
+        return _kskipcg(A, b, epsilon, k, T)
     else:
-        if rank == 0:
-            return _kskipcg_gpu(A, b, epsilon, k, T)
-        else:
-            _kskipcg_gpu(A, b, epsilon, k, T)
+        _kskipcg(A, b, epsilon, k, T)

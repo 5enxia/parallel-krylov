@@ -385,13 +385,8 @@ def _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu):
 
 def adaptivekskipmrr(A, b, epsilon, k, T, pu):
     comm, rank, num_of_process = init_mpi()
-    if pu == 'cpu':
-        if rank == 0:
-            return _adaptivekskipmrr_cpu(A, b, epsilon, k, T, pu)
-        else:
-            _adaptivekskipmrr_cpu(A, b, epsilon, k, T, pu)
+    _adaptivekskipmrr = _adaptivekskipmrr_cpu if pu == 'cpu' else _adaptivekskipmrr_gpu
+    if rank == 0:
+        return _adaptivekskipmrr(A, b, epsilon, k, T, pu)
     else:
-        if rank == 0:
-            return _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu)
-        else:
-            _adaptivekskipmrr_gpu(A, b, epsilon, k, T, pu)
+        _adaptivekskipmrr(A, b, epsilon, k, T, pu)
