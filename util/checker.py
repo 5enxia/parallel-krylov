@@ -18,3 +18,8 @@ def check_gpu(device: int) -> bool:
                 return True
     except Exception as e:
         return False
+
+
+if __name__ == '__main__':
+    res = check_gpu(0)
+    print(res)
