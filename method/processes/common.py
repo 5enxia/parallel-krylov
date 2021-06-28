@@ -40,7 +40,8 @@ def init_gpu(rank):
 
 def init(A, b, num_of_process, T, pu):
     old_N = b.size
-    num_of_append = ((num_of_process - (old_N % num_of_process)) % num_of_process)
+    # num_of_append = ((num_of_process - (old_N % num_of_process)) % num_of_process)
+    num_of_append = num_of_process - (old_N % num_of_process)
     N = old_N + num_of_append
     local_N = N // num_of_process
 
