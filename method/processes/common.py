@@ -72,7 +72,7 @@ def init(A, b, num_of_process, T, pu):
                 A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
                 A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
         elif isinstance(A, scipy.sparse.csr.csr_matrix):
-            from scipy.sparse import hstack ,vstack, csr_matrix
+            from scipy.sparse import hstack, vstack, csr_matrix
             if num_of_append:
                 A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
@@ -88,7 +88,7 @@ def init(A, b, num_of_process, T, pu):
                 A = cp.append(A, cp.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
                 A = cp.append(A, cp.zeros((num_of_append, N)), axis=0)  # 下に0を追加
         elif isinstance(A, cupyx.scipy.sparse.csr.csr_matrix):
-            from cupyx.scipy.sparse import hstack ,vstack, csr_matrix
+            from cupyx.scipy.sparse import hstack, vstack, csr_matrix
             if num_of_append:
                 A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
