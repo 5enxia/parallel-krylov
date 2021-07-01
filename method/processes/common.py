@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 from numpy.linalg import norm
 
 from mpi4py import MPI
@@ -66,7 +67,6 @@ def init(A, b, num_of_process, T, pu):
     b_norm = None
 
     if pu == 'cpu':
-        import scipy
         if isinstance(A, np.ndarray):
             if num_of_append:
                 A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
@@ -83,13 +83,15 @@ def init(A, b, num_of_process, T, pu):
     else:
         import cupy as cp
         import cupyx
-        if isinstance(A, cp.ndarray):
+        if isinstance(A, np.ndarray):
             if num_of_append:
+                A = cp.array(A)
                 A = cp.append(A, cp.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
                 A = cp.append(A, cp.zeros((num_of_append, N)), axis=0)  # 下に0を追加
-        elif isinstance(A, cupyx.scipy.sparse.csr.csr_matrix):
+        elif isinstance(A, scipy.sparse.csr.csr_matrix):
             from cupyx.scipy.sparse import hstack, vstack, csr_matrix
             if num_of_append:
+                A = csr_matrix(A)
                 A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
         if num_of_append:
