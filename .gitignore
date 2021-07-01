@@ -11,7 +11,6 @@ x/*.sh
 x/*.c
 x/build
 
-*.txt
 *.npy
 *.npz
 *.dat
