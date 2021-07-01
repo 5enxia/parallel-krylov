@@ -279,13 +279,8 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
 def kskipmrr(A, b, epsilon, k, T, pu):
     comm, rank, num_of_process = init_mpi()
-    if pu == 'cpu':
-        if rank == 0:
-            return _kskipmrr_cpu(A, b, epsilon, k, T, pu)
-        else:
-            _kskipmrr_cpu(A, b, epsilon, k, T, pu)
+    _kskipmrr = _kskipmrr_cpu if pu == 'cpu' else _kskipmrr_gpu
+    if rank == 0:
+        return _kskipmrr(A, b, epsilon, k, T, pu)
     else:
-        if rank == 0:
-            return _kskipmrr_gpu(A, b, epsilon, k, T, pu)
-        else:
-            _kskipmrr_gpu(A, b, epsilon, k, T, pu)
+        _kskipmrr(A, b, epsilon, k, T, pu)
