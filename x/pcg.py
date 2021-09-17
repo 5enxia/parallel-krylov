@@ -11,34 +11,36 @@ if __name__ == "__main__":
 
 from krylov.method.threads.common import start, end, init
 
-def pcg(A, b, M, epsilon, callback = None, T = np.float64):
-    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T, pu='cpu')
-    
+
+def pcg(A, b, M, epsilon, callback=None, T=np.float64):
+    x, b_norm, N, max_iter, residual, solution_updates = init(
+        A, b, T, pu='cpu')
+
     start_time = start(method_name='Preconditioned CG')
 
-    r = b - dot(A,x)
+    r = b - dot(A, x)
     residual[0] = norm(r) / b_norm
-    z = dot(M,r)
-    p = z.copy() 
+    z = dot(M, r)
+    p = z.copy()
 
     for i in range(max_iter):
-        alpha = dot(r,z) / multi_dot([p,A,p]) 
+        alpha = dot(r, z) / multi_dot([p, A, p])
         x += alpha * p
         old_r = r.copy()
         old_z = z.copy()
-        r -= alpha * dot(A,p)
-        z = dot(M,r)
+        r -= alpha * dot(A, p)
+        z = dot(M, r)
 
         residual[i+1] = norm(r) / b_norm
         if residual[i+1] < epsilon:
             isConverged = True
             break
 
-        beta = dot(r,z) / dot(old_r,old_z)
+        beta = dot(r, z) / dot(old_r, old_z)
         p = z + beta * p
-        
+
         solution_updates[i] = i
-    
+
     else:
         isConverged = False
 
@@ -47,21 +49,28 @@ def pcg(A, b, M, epsilon, callback = None, T = np.float64):
 
     # end(start_time, isConverged, num_of_iter, residual, residual_index)
     end(start_time, isConverged, num_of_iter, residual[residual_index])
-    
+
     return isConverged
 
 
 if __name__ == "__main__":
     import unittest
-    from krylov.util import toepliz_matrix_generator, precondition
+    from krylov.util import toepliz_matrix_generator, precondition, load_condition
+    params = load_condition.load_condition_params('./condition.json')
 
-    class TestCgMethod(unittest.TestCase):
-        epsilon = 1e-4
-        T = np.float64
+    N = params['N']
+    diag = params['diag']
+    sub_diag = params['sub_diag']
+    eps = params['epsilon']
 
-        def test_single_pcg_method(self):
-            A, b = toepliz_matrix_generator.generate(N = 100, diag=2.5, sub_diag=1)
-            M = precondition.ilu(A)
-            self.assertTrue(pcg(A, b, M ,TestCgMethod.epsilon, TestCgMethod.T))
+    mn = params['method_name']
+    mt = params['matrix_type']
+    length = params['length']
+    k = params['k']
+    pt = params['processor_type']
+    nop = params['number_of_process']
 
-    unittest.main()
+    toepliz_matrix_generator.generate(N, diag, sub_diag, T)
+    M = precondition.ilu(A)
+
+    pcg(A, b, M, epsilon, T)
