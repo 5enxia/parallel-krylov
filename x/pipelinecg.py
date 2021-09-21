@@ -20,23 +20,23 @@ def pcg(A, b, M, epsilon, callback=None, T=np.float64):
     start_time = start(method_name='Preconditioned CG')
 
     r = b - dot(A, x)
-    residual[0] = norm(r) / b_norm
+    residual[0] = norm(r)/b_norm
     u = dot(M, r)
     p = u.copy()
     for i in range(max_iter):
         s = dot(A, p)
-        alpha = dot(r, u) / dot(s, p)
-        x += alpha * p
-        r -= alpha * s
-        residual[i+1] = norm(r) / b_norm
+        alpha = dot(r, u)/dot(s, p)
+        x += alpha*p
+        r -= alpha*s
+        residual[i+1] = norm(r)/b_norm
         if residual[i+1] < epsilon:
             isConverged = True
             break
         old_r = r.copy()
         old_u = u.copy()
         u = dot(M, r)
-        beta = dot(r, u) / dot(old_r, old_u)
-        p = u + beta * p
+        beta = dot(r, u)/dot(old_r, old_u)
+        p = u + beta*p
 
     end(start_time, isConverged, i, residual[i])
     return isConverged
@@ -50,17 +50,17 @@ def chronopoulos_gear(A, b, M, epsilon, callback=None, T=np.float64):
     start_time = start(method_name='chronopoulos gear')
 
     r = b - dot(A, x)
-    residual[0] = norm(r) / b_norm
+    residual[0] = norm(r)/b_norm
     u = dot(M, r)
-    w = dot(A, u) 
+    w = dot(A, u)
 
-    alpha = dot(r, u) / dot(w, u)
+    alpha = dot(r, u)/dot(w, u)
     beta = 0
     gamma = dot(r, u)
     old_gamma = gamma
 
-    p = u.copy()
-    s = dot(A, p)
+    p = np.zeros(N, T)
+    s = np.zeros(N, T)
 
     for i in range(max_iter):
         p = u + beta*p
@@ -68,7 +68,7 @@ def chronopoulos_gear(A, b, M, epsilon, callback=None, T=np.float64):
         x += alpha*p
         r -= alpha*s
 
-        residual[i+1] = norm(r) / b_norm
+        residual[i+1] = norm(r)/b_norm
         if residual[i+1] < epsilon:
             isConverged = True
             break
@@ -77,8 +77,8 @@ def chronopoulos_gear(A, b, M, epsilon, callback=None, T=np.float64):
         w = dot(A, u)
         gamma = dot(r, u)
         delta = dot(w, u)
-        beta = gamma / old_gamma
-        alpha = gamma / (delta - beta * gamma / alpha)
+        beta = gamma/old_gamma
+        alpha = gamma/(delta - beta*gamma/alpha)
 
     end(start_time, isConverged, i, residual[i])
 
@@ -107,11 +107,11 @@ def pipeline(A, b, M, epsilon, callback=None, T=np.float64):
         m = dot(M, w)
         n = dot(A, m)
         if i > 0:
-            beta = gamma / old_gamma
-            alpha = gamma / (delta - beta * gamma / alpha)
+            beta = gamma/old_gamma
+            alpha = gamma/(delta - beta*gamma/alpha)
         else:
             beta = 0
-            alpha = gamma / delta
+            alpha = gamma/delta
         z = n + beta*z
         q = m + beta*q
         s = w + beta*s
@@ -145,10 +145,10 @@ def gropp(A, b, M, epsilon, callback=None, T=np.float64):
     for i in range(max_iter):
         delta = dot(p, s)
         q = dot(M, s)
-        alpha = gamma / delta
+        alpha = gamma/delta
         x += alpha*p
         r -= alpha*s
-        residual[i+1] = norm(r) / b_norm
+        residual[i+1] = norm(r)/b_norm
         if residual[i+1] < epsilon:
             isConverged = True
             break
@@ -156,7 +156,7 @@ def gropp(A, b, M, epsilon, callback=None, T=np.float64):
         gamma = dot(r, u)
         old_gamma = gamma
         w = dot(A, u)
-        beta = gamma / old_gamma
+        beta = gamma/old_gamma
         p = u + beta*p
         s = w + beta*s
 
