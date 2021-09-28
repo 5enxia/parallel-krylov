@@ -4,10 +4,9 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def pipeline(A, b, ilu, epsilon, callback=None, T=np.float64):
+def pipeline(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='pipeline')
 

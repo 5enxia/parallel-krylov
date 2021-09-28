@@ -5,10 +5,9 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def pcg(A, b, ilu, epsilon: float, callback=None, T=np.float64):
+def pcg(A, b, ilu, epsilon: float, T=np.float64, pt: str='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='Preconditioned CG')
 

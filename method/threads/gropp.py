@@ -4,10 +4,9 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def gropp(A, b, ilu, epsilon, callback=None, T=np.float64):
+def gropp(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+    x, b_norm, N, max_iter, residual, solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='gropp')
 
@@ -18,7 +17,7 @@ def gropp(A, b, ilu, epsilon, callback=None, T=np.float64):
     s = dot(A, p)
     gamma = dot(r, u)
 
-    i = 0 
+    i = 0
     for i in range(1, max_iter):
         delta = dot(p, s)
         q = ilu.solve(s)
