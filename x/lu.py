@@ -10,6 +10,10 @@ if __name__ == "__main__":
     sys.path.append(directory)
 
 from krylov.method.threads.common import start, end, init
+import krylov.method.threads.pcg as mpcg
+import krylov.method.threads.chronopoulos_gear as mcg
+import krylov.method.threads.pipeline as mpl
+import krylov.method.threads.gropp as mg
 
 
 # def pcg(A, b, M, epsilon, callback=None, T=np.float64):
@@ -208,7 +212,12 @@ if __name__ == "__main__":
     # ilu = precondition.ilu(A)
     ilu = precondition.lu(A)
 
-    pcg(A, b, ilu, eps, T)
-    chronopoulos_gear(A, b, ilu, eps, T)
-    pipeline(A, b, ilu, eps, T)
-    gropp(A, b, ilu, eps, T)
+    # pcg(A, b, ilu, eps, T)
+    # chronopoulos_gear(A, b, ilu, eps, T)
+    # pipeline(A, b, ilu, eps, T)
+    # gropp(A, b, ilu, eps, T)
+    
+    mpcg.pcg(A, b, ilu, eps, T)
+    mcg.chronopoulos_gear(A, b, ilu, eps, T)
+    mpl.pipeline(A, b, ilu, eps, T)
+    mg.gropp(A, b, ilu, eps, T)

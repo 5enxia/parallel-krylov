@@ -24,7 +24,7 @@ def pcg(A, b, M, epsilon, callback=None, T=np.float64):
     u = dot(M, r)
     p = u.copy()
     for i in range(max_iter):
-        s = dot(A, p)
+        s = dot(M, p)
         alpha = dot(r, u)/dot(s, p)
         x += alpha*p
         r -= alpha*s
@@ -38,6 +38,7 @@ def pcg(A, b, M, epsilon, callback=None, T=np.float64):
         beta = dot(r, u)/dot(old_r, old_u)
         p = u + beta*p
 
+        print(i, r[i])
     end(start_time, isConverged, i, residual[i])
     return isConverged
 
@@ -88,7 +89,7 @@ def pipeline(A, b, M, epsilon, callback=None, T=np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(
         A, b, T, pu='cpu')
 
-    start_time = start(method_name='Preconditioned CG')
+    start_time = start(method_name='pipeline')
 
     r = b - dot(A, x)
     residual[0] = norm(r) / b_norm
@@ -133,7 +134,7 @@ def gropp(A, b, M, epsilon, callback=None, T=np.float64):
     x, b_norm, N, max_iter, residual, solution_updates = init(
         A, b, T, pu='cpu')
 
-    start_time = start(method_name='Preconditioned CG')
+    start_time = start(method_name='gropp')
 
     r = b - dot(A, x)
     residual[0] = norm(r) / b_norm
@@ -182,9 +183,10 @@ if __name__ == "__main__":
 
     T = np.float64
     A, b = toepliz_matrix_generator.generate(N, diag, sub_diag, T)
-    M = precondition.ilu(A)
+    # ilu = precondition.ilu(A)
+    M = precondition.ilu(M)
 
     pcg(A, b, M, eps, T)
-    chronopoulos_gear(A, b, M, eps, T)
-    pipeline(A, b, M, eps, T)
-    gropp(A, b, M, eps, T)
+    # chronopoulos_gear(A, b, ilu, eps, T)
+    # pipeline(A, b, ilu, eps, T)
+    # gropp(A, b, ilud, eps, T)
