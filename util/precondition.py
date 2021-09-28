@@ -13,9 +13,10 @@ def lu(A):
     """
     csc_A = lil_matrix(A).tocsc()
     lu = linalg.splu(csc_A, permc_spec='NATURAL')
-    L = lu.L.toarray()
-    U = lu.U.toarray()
-    return np.linalg.inv(L).dot(np.linalg.inv(U))
+    return lu
+    # L = lu.L.toarray()
+    # U = lu.U.toarray()
+    # return np.linalg.inv(L).dot(np.linalg.inv(U))
 
 
 def ilu(A):
@@ -29,9 +30,10 @@ def ilu(A):
     """
     csc_A = lil_matrix(A).tocsc()
     ilu = linalg.spilu(csc_A)
-    L = ilu.L.toarray()
-    U = ilu.U.toarray()
-    return np.linalg.inv(L).dot(np.linalg.inv(U))
+    return ilu
+    # L = ilu.L.toarray()
+    # U = ilu.U.toarray()
+    # return np.linalg.inv(L).dot(np.linalg.inv(U))
 
 
 def diagScaling(A):

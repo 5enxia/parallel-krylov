@@ -5,54 +5,39 @@ import numpy as np
 from ..common import _start, _end
 
 
-def start(method_name='', k=None):
-    """計算開始時処理
+def start(method_name: str = '', k: int = None) -> float:
+    """[summary]
+
     Args:
-        method_name (str, optional): 手法名 Defaults to ''.
-        k (int, optional): k. Defaults to None.
+        method_name (str, optional): [description]. Defaults to ''.
+        k (int, optional): [description]. Defaults to None.
 
     Returns:
-        float: 計算開始時刻
+        float: [description]
     """
     _start(method_name, k)
     return time.perf_counter()
 
 
-def end(start_time, isConverged, num_of_iter, final_residual, final_k=None):
-    """計算終了処理
+def end(start_time: float, isConverged: bool, num_of_iter: int, final_residual: float, final_k: int = None) -> float:
+    """[summary]
 
     Args:
-        start_time (float): 計算開始時刻
-        isConverged (bool): 収束判定
-        num_of_iter (int): 反復回数
-        final_residual (numpy.ndarray): 最終残差
-        residual_index (int): 反復終了時の残差インデックス
-        final_k (int, optional): 反復終了時のk Defaults to None.
+        start_time (float): [description]
+        isConverged (bool): [description]
+        num_of_iter (int): [description]
+        final_residual (float): [description]
+        final_k (int, optional): [description]. Defaults to None.
 
     Returns:
-        float: 経過時間
+        float: [description]
     """
     elapsed_time = time.perf_counter() - start_time
     _end(elapsed_time, isConverged, num_of_iter, final_residual, final_k)
     return elapsed_time
 
 
-def init(A, b, T, pu):
-    """init_cpu, init_gpuの共通処理
-
-    Args:
-        A ([np.ndarray]): [係数行列]
-        b ([np.nadrray]): [厳密解]
-        T ([dtype], optional): [description]. Defaults to np.float64.
-
-    Returns:
-        x [np.ndarray]: [初期解(np.zeros)]
-        b_norm [float64]: [bのL2ノルム]
-        N [int]: [次元数]
-        max_iter [int]: [最大反復回数(N * 2)]
-        residual [np.ndarray]: [残差履歴]
-        num_of_solution_updates [np.ndarray]: [解の更新回数履歴]
-    """
+def init(A: np.ndarray, b: np.ndarray, T, pu: str) -> tuple:
     if pu == 'gpu':
         import cupy as cp
         pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
