@@ -4,15 +4,25 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def chronopoulos_gear(A, b, ilu, epsilon, callback=None, T=np.float64):
+def chronopoulos_gear(A, b, ilu, epsilon, T=np.float64, pt: str='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+
+    if pt == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='chronopoulos gear')
 
     r = b - dot(A, x)
     residual[0] = norm(r)/b_norm
+    num_of_solution_updates[1] = 1
     u = ilu.solve(r)
     w = dot(A, u)
 
@@ -30,7 +40,6 @@ def chronopoulos_gear(A, b, ilu, epsilon, callback=None, T=np.float64):
         x += alpha*p
         r -= alpha*s
         residual[i] = norm(r)/b_norm
-        print(residual[i])
         if residual[i] < epsilon:
             isConverged = True
             break
@@ -41,4 +50,7 @@ def chronopoulos_gear(A, b, ilu, epsilon, callback=None, T=np.float64):
         beta = gamma/old_gamma
         alpha = gamma/(delta - beta*gamma/alpha)
 
-    end(start_time, isConverged, i, residual[i])
+        num_of_solution_updates[i] = i
+
+    elapsed_time = end(start_time, isConverged, i, residual[i])
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

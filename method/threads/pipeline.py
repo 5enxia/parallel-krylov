@@ -4,10 +4,19 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def pipeline(A, b, ilu, epsilon, callback=None, T=np.float64):
+def pipeline(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+
+    if pt == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='pipeline')
 
@@ -49,4 +58,5 @@ def pipeline(A, b, ilu, epsilon, callback=None, T=np.float64):
         u -= alpha*q
         w -= alpha*z
 
-    end(start_time, isConverged, i, residual[i])
+    elapsed_time = end(start_time, isConverged, i, residual[i])
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

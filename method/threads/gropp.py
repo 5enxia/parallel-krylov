@@ -4,10 +4,19 @@ from numpy.linalg import norm
 from .common import start, end, init
 
 
-def gropp(A, b, ilu, epsilon, callback=None, T=np.float64):
+def gropp(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
     isConverged = False
-    x, b_norm, N, max_iter, residual, solution_updates = init(
-        A, b, T, pu='cpu')
+
+    if pt == 'cpu':
+        import numpy as xp
+        from numpy import dot
+        from numpy.linalg import norm
+        x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
+    else:
+        import cupy as xp
+        from cupy import dot
+        from cupy.linalg import norm
+        A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, pt)
 
     start_time = start(method_name='gropp')
 
@@ -18,7 +27,7 @@ def gropp(A, b, ilu, epsilon, callback=None, T=np.float64):
     s = dot(A, p)
     gamma = dot(r, u)
 
-    i = 0 
+    i = 0
     for i in range(1, max_iter):
         delta = dot(p, s)
         q = ilu.solve(s)
@@ -37,5 +46,5 @@ def gropp(A, b, ilu, epsilon, callback=None, T=np.float64):
         p = u + beta*p
         s = w + beta*s
 
-    end(start_time, isConverged, i, residual[i])
-    return isConverged
+    elapsed_time = end(start_time, isConverged, i, residual[i])
+    return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
