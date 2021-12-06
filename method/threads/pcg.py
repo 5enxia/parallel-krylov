@@ -17,10 +17,12 @@ def pcg(A, b, ilu, epsilon: float, T=np.float64, pt: str='cpu'):
 
     start_time = start(method_name='Preconditioned CG')
 
+    # r_0 = b - Ax_0
     r = b - dot(A, x)
     residual[0] = norm(r)/b_norm
     num_of_solution_updates[1] = 1
 
+    # u_0 = M^-1r_0
     u = ilu.solve(r)
     p = u.copy()
 
