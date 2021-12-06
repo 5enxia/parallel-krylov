@@ -1,21 +1,20 @@
 import numpy as np
-
-from .common import start, finish, init, init_mpi
-
 from numpy import dot
 from numpy.linalg import norm
 
+from .common import start, finish, init, init_mpi
 
 def cg(A, b, epsilon, T):
+    # MPI初期化
     comm, rank, num_of_process = init_mpi()
 
     # 共通初期化
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
+    begin, end = rank * local_N, (rank+1) * local_N
 
+    # 初期化
     Ax = np.empty(N, T)
     v = np.empty(N, T)
-
-    begin, end = rank * local_N, (rank+1) * local_N
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x), Ax)

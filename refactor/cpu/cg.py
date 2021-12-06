@@ -1,7 +1,8 @@
-from .common import start, finish, init
-
 from numpy import dot
 from numpy.linalg import norm
+
+from .common import start, finish, init
+
 
 def cg(A, b, epsilon, T):
     # 初期化
@@ -39,4 +40,3 @@ def cg(A, b, epsilon, T):
 
     elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
-
