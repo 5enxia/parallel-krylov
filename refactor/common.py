@@ -23,7 +23,6 @@ def _start(method_name: str = '', k: int = None) -> None:
         method_name (str, optional): [description]. Defaults to ''.
         k (int, optional): [description]. Defaults to None.
     """
-    print('Calculating...')
     print(Color.GREEN, '# ', '='*16, ' INFO ', '='*16, ' #', Color.END, sep='')
     print(f'Method:\t\t{ method_name }')
     print(f'Initial_k:\t{ k }')
