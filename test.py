@@ -6,7 +6,7 @@ from scipy.linalg import toeplitz
 
 T = np.float64
 N = 1081
-k = 2
+k = 1
 elements = np.zeros(N, T)
 elements[0] = 2
 elements[1] = 0.01 
@@ -27,6 +27,11 @@ def normal(method):
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipcg(A, b, 1e-10, k, T)
 
+	if method == 'kskipmrr':
+		from refactor.cpu.kskipmrr import kskipmrr
+		A, b = toeplitz(elements), np.ones(N, T)
+		kskipmrr(A, b, 1e-10, k, T)
+
 def mpi(method):
 	if method == 'cg':
 		from refactor.cpu.mpi.cg import cg
@@ -42,6 +47,11 @@ def mpi(method):
 		from refactor.cpu.mpi.kskipcg import kskipcg
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipcg(A, b, 1e-10, k, T)
+
+	if method == 'kskipmrr':
+		from refactor.cpu.mpi.kskipmrr import kskipmrr
+		A, b = toeplitz(elements), np.ones(N, T)
+		kskipmrr(A, b, 1e-10, k, T)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='test exce cuter')
