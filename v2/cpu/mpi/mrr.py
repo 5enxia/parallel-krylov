@@ -28,7 +28,7 @@ def mrr(A, b, epsilon, T):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='MrR')
+        start_time = start(method_name='MrR + MPI')
     comm.Allgather(A[begin:end].dot(r), Ar)
     comm.Allreduce(r[begin:end].dot(Ar[begin:end]), rs)
     comm.Allreduce(Ar[begin:end].dot(Ar[begin:end]), ss)

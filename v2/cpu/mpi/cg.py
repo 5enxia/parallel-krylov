@@ -26,7 +26,7 @@ def cg(A, b, epsilon, T):
     i = 0
 
     if rank == 0:
-        start_time = start(method_name='CG')
+        start_time = start(method_name='CG + MPI')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm

@@ -39,7 +39,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='adaptive k-skip MrR', k=k)
+        start_time = start(method_name='Adaptive k-skip MrR + MPI', k=k)
     comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
     comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]), rAr)
     comm.Allreduce(Ar[1][begin:end].dot(Ar[1][begin:end]), ArAr)

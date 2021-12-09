@@ -35,7 +35,7 @@ def kskipcg(A, b, epsilon, k, T):
     i = 0
     index = 0
     if rank == 0:
-        start_time = start(method_name='k-skip CG', k=k)
+        start_time = start(method_name='k-skip CG + MPI', k=k)
     while i < max_iter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
