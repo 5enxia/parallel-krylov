@@ -9,7 +9,7 @@ N = 1081
 k = 1
 elements = np.zeros(N, T)
 elements[0] = 2
-elements[1] = 1e-6
+elements[1] = 1e-4
 
 def normal(method):
 	if method == 'cg':
@@ -57,6 +57,11 @@ def mpi(method):
 		from refactor.cpu.mpi.kskipmrr import kskipmrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipmrr(A, b, 1e-10, k, T)
+
+	if method == 'adaptivekskipmrr':
+		from refactor.cpu.mpi.adaptivekskipmrr import adaptivekskipmrr
+		A, b = toeplitz(elements), np.ones(N, T)
+		adaptivekskipmrr(A, b, 1e-10, k, T)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='test exce cuter')

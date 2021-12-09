@@ -10,3 +10,4 @@ mpiexec python3 test.py -m cg
 mpiexec python3 test.py -m mrr
 mpiexec python3 test.py -m kskipcg
 mpiexec python3 test.py -m kskipmrr
+mpiexec python3 test.py -m adaptivekskipmrr
