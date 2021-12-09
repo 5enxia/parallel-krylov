@@ -32,6 +32,11 @@ def normal(method):
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipmrr(A, b, 1e-10, k, T)
 
+	if method == 'adaptivekskipmrr':
+		from refactor.cpu.adaptivekskipmrr import adaptivekskipmrr
+		A, b = toeplitz(elements), np.ones(N, T)
+		adaptivekskipmrr(A, b, 1e-10, k, T)
+
 def mpi(method):
 	if method == 'cg':
 		from refactor.cpu.mpi.cg import cg
