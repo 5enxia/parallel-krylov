@@ -13,53 +13,53 @@ elements[1] = 1e-4
 
 def normal(method):
 	if method == 'cg':
-		from refactor.cpu.cg import cg
+		from v2.cpu.cg import cg
 		A, b = toeplitz(elements), np.ones(N, T)
 		cg(A, b, 1e-10, T)
 
 	if method == 'mrr':
-		from refactor.cpu.mrr import mrr
+		from v2.cpu.mrr import mrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		mrr(A, b, 1e-10, T)
 
 	if method == 'kskipcg':
-		from refactor.cpu.kskipcg import kskipcg
+		from v2.cpu.kskipcg import kskipcg
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipcg(A, b, 1e-10, k, T)
 
 	if method == 'kskipmrr':
-		from refactor.cpu.kskipmrr import kskipmrr
+		from v2.cpu.kskipmrr import kskipmrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipmrr(A, b, 1e-10, k, T)
 
 	if method == 'adaptivekskipmrr':
-		from refactor.cpu.adaptivekskipmrr import adaptivekskipmrr
+		from v2.cpu.adaptivekskipmrr import adaptivekskipmrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		adaptivekskipmrr(A, b, 1e-10, k, T)
 
 def mpi(method):
 	if method == 'cg':
-		from refactor.cpu.mpi.cg import cg
+		from v2.cpu.mpi.cg import cg
 		A, b = toeplitz(elements), np.ones(N, T)
 		cg(A, b, 1e-10, T)
 
 	if method == 'mrr':
-		from refactor.cpu.mpi.mrr import mrr
+		from v2.cpu.mpi.mrr import mrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		mrr(A, b, 1e-10, T)
 
 	if method == 'kskipcg':
-		from refactor.cpu.mpi.kskipcg import kskipcg
+		from v2.cpu.mpi.kskipcg import kskipcg
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipcg(A, b, 1e-10, k, T)
 
 	if method == 'kskipmrr':
-		from refactor.cpu.mpi.kskipmrr import kskipmrr
+		from v2.cpu.mpi.kskipmrr import kskipmrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		kskipmrr(A, b, 1e-10, k, T)
 
 	if method == 'adaptivekskipmrr':
-		from refactor.cpu.mpi.adaptivekskipmrr import adaptivekskipmrr
+		from v2.cpu.mpi.adaptivekskipmrr import adaptivekskipmrr
 		A, b = toeplitz(elements), np.ones(N, T)
 		adaptivekskipmrr(A, b, 1e-10, k, T)
 
