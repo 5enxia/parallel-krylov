@@ -9,7 +9,7 @@ N = 1081
 k = 1
 elements = np.zeros(N, T)
 elements[0] = 2
-elements[1] = 0.01 
+elements[1] = 1e-6
 
 def normal(method):
 	if method == 'cg':
