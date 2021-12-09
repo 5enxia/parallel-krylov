@@ -25,7 +25,8 @@ def _start(method_name: str = '', k: int = None) -> None:
     """
     print(Color.GREEN, '# ', '='*16, ' INFO ', '='*16, ' #', Color.END, sep='')
     print(f'Method:\t\t{ method_name }')
-    print(f'Initial_k:\t{ k }')
+    if k != None:
+        print(f'Initial_k:\t{ k }')
 
 
 def _finish(
