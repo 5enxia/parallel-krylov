@@ -6,10 +6,10 @@ from scipy.linalg import toeplitz
 
 T = np.float64
 N = 1081
-k = 1
+k = 5
 elements = np.zeros(N, T)
 elements[0] = 2
-elements[1] = 1e-4
+elements[1] = 1e-3
 
 def normal(method):
 	if method == 'cg':
