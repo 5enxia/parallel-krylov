@@ -1,14 +1,12 @@
 from cupy import dot
 from cupy.linalg import norm
 
-from .common import init_gpu
-
-from .common import start, finish, init
+from .common import start, finish, init, init_gpu
 
 
 def cg(A, b, epsilon, T):
     # 初期化
-    init_gpu()
+    init_gpu(0, 4)
     A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期残差
