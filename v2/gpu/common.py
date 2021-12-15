@@ -5,7 +5,6 @@ import scipy
 from scipy.sparse import hstack, vstack, csr_matrix
 import cupy as cp
 from cupy.cuda import Device
-from cupy.cuda.runtime import memcpyPeer
 
 from ..common import _start, _finish
 
@@ -142,7 +141,7 @@ class MultiGpu(object):
         # Copy vector data to All devices
         for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
             Device(i).use()
-            memcpyPeer(MultiGpu.x[i].data.ptr, i, x.data.ptr, 0, MultiGpu.nbytes)
+            cp.cuda.runtime.memcpyPeer(MultiGpu.x[i].data.ptr, i, x.data.ptr, 0, MultiGpu.nbytes)
         # dot
         for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
             Device(i).use()
@@ -150,6 +149,6 @@ class MultiGpu(object):
         # Gather caculated element from All devices
         for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
             Device(i).synchronize()
-            memcpyPeer(MultiGpu.out[MultiGpu.local_N*i].data.ptr, 0, MultiGpu.y[i-MultiGpu.begin].data.ptr, i, MultiGpu.local_nbytes)
+            cp.cuda.runtime.memcpyPeer(MultiGpu.out[MultiGpu.local_N*i].data.ptr, 0, MultiGpu.y[i-MultiGpu.begin].data.ptr, i, MultiGpu.local_nbytes)
         # return
         return MultiGpu.out
