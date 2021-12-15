@@ -10,7 +10,7 @@ def kskipcg(A, b, epsilon, k, T):
 
     # 共通初期化
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(
-        A, b, num_of_process, T)
+        A, b, T)
     begin, end = rank * local_N, (rank+1) * local_N
     # local_A, Ax, local_Ax = init_matvec(N, local_N, T)
     Ax = np.empty(N, T)

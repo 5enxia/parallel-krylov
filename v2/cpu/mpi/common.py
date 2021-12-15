@@ -40,7 +40,7 @@ def init_gpu(rank):
     return num_of_gpu
 
 
-def init(A, b, num_of_process, T):
+def init(A, b, T, num_of_process: int = 16):
     """[summary]
 
     Args:

@@ -8,7 +8,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(
-        A, b, num_of_process, T)
+        A, b, T)
     begin, end = rank * local_N, (rank+1) * local_N
 
     # 初期化
