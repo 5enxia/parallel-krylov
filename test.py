@@ -5,8 +5,8 @@ import numpy as np
 from scipy.linalg import toeplitz
 
 T = np.float64
-N = 1081
-k = 5
+N = 32
+k = 0
 elements = np.zeros(N, T)
 elements[0] = 2
 elements[1] = 1e-3
