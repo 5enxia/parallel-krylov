@@ -9,10 +9,7 @@ def kskipcg(A, b, epsilon, k, T):
     comm, rank, num_of_process = init_mpi()
 
     # 共通初期化
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(
-        A, b, T)
-    begin, end = rank * local_N, (rank+1) * local_N
-    # local_A, Ax, local_Ax = init_matvec(N, local_N, T)
+    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
     Ax = np.empty(N, T)
 
     # root
@@ -21,13 +18,9 @@ def kskipcg(A, b, epsilon, k, T):
     a = np.zeros(2*k + 2, T)
     f = np.zeros(2*k + 4, T)
     c = np.zeros(2*k + 2, T)
-    # local
-    local_a = np.zeros(2*k + 2, T)
-    local_f = np.zeros(2*k + 4, T)
-    local_c = np.zeros(2*k + 2, T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x), Ax)
+    comm.Allgather(local_A.dot(x), Ax)
     Ar[0] = b - Ax
     Ap[0] = Ar[0].copy()
 
@@ -45,23 +38,20 @@ def kskipcg(A, b, epsilon, k, T):
 
         # 基底計算
         for j in range(1, k + 1):
-            comm.Allgather(A[begin:end].dot(Ar[j-1]), Ar[j])
-            comm.Allgather(A[begin:end].dot(Ap[j-1]), Ap[j])
-        comm.Allgather(A[begin:end].dot(Ap[k]), Ap[k+1])
+            comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
+            comm.Allgather(local_A.dot(Ap[j-1]), Ap[j])
+        comm.Allgather(local_A.dot(Ap[k]), Ap[k+1])
 
         # 係数計算
         for j in range(2 * k + 1):
             jj = j // 2
-            local_a[j] = dot(Ar[jj][begin:end], Ar[jj + j % 2][begin:end])
-        comm.Allreduce(local_a, a)
+            a[j] = dot(Ar[jj], Ar[jj + j % 2])
         for j in range(2 * k + 4):
             jj = j // 2
-            local_f[j] = dot(Ap[jj][begin:end], Ap[jj + j % 2][begin:end])
-        comm.Allreduce(local_f, f)
+            f[j] = dot(Ap[jj], Ap[jj + j % 2])
         for j in range(2 * k + 2):
             jj = j // 2
-            local_c[j] = dot(Ar[jj][begin:end], Ap[jj + j % 2][begin:end])
-        comm.Allreduce(local_c, c)
+            c[j] = dot(Ar[jj], Ap[jj + j % 2])
 
         # CGでの1反復
         # 解の更新
@@ -70,7 +60,7 @@ def kskipcg(A, b, epsilon, k, T):
         x += alpha * Ap[0]
         Ar[0] -= alpha * Ap[1]
         Ap[0] = Ar[0] + beta * Ap[0]
-        comm.Allgather(A[begin:end].dot(Ap[0]), Ap[1])
+        comm.Allgather(local_A.dot(Ap[0]), Ap[1])
 
         # CGでのk反復
         for j in range(k):
@@ -86,7 +76,7 @@ def kskipcg(A, b, epsilon, k, T):
             x += alpha * Ap[0]
             Ar[0] -= alpha * Ap[1]
             Ap[0] = Ar[0] + beta * Ap[0]
-            comm.Allgather(A[begin:end].dot(Ap[0]), Ap[1])
+            comm.Allgather(local_A.dot(Ap[0]), Ap[1])
 
         i += (k + 1)
         index += 1

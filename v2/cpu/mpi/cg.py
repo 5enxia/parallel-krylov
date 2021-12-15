@@ -9,15 +9,14 @@ def cg(A, b, epsilon, T):
     comm, rank, num_of_process = init_mpi()
 
     # 共通初期化
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    begin, end = rank * local_N, (rank+1) * local_N
+    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
 
     # 初期化
     Ax = np.empty(N, T)
     v = np.empty(N, T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x), Ax)
+    comm.Allgather(local_A.dot(x), Ax)
     r = b - Ax
     p = r.copy()
     gamma = dot(r, r)
@@ -35,7 +34,7 @@ def cg(A, b, epsilon, T):
             break
 
         # 解の更新
-        comm.Allgather(A[begin:end].dot(p), v)
+        comm.Allgather(local_A.dot(p), v)
         sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import dot
 from numpy.linalg import norm
 
 from .common import start, finish, init, init_mpi
@@ -9,8 +10,7 @@ def mrr(A, b, epsilon, T):
     comm, rank, num_of_process = init_mpi()
 
     # 共通初期化
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, T)
-    begin, end = rank * local_N, (rank+1) * local_N
+    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
 
     # 初期化
     Ax = np.empty(N, T)
@@ -22,16 +22,16 @@ def mrr(A, b, epsilon, T):
     mu = np.empty(1, T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x), Ax)
+    comm.Allgather(local_A.dot(x), Ax)
     r = b - Ax
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR + MPI')
-    comm.Allgather(A[begin:end].dot(r), Ar)
-    comm.Allreduce(r[begin:end].dot(Ar[begin:end]), rs)
-    comm.Allreduce(Ar[begin:end].dot(Ar[begin:end]), ss)
+    comm.Allgather(local_A.dot(r), Ar)
+    rs = dot(r, Ar)
+    ss = dot(Ar, Ar)
     zeta = rs / ss
     y = zeta * Ar
     z = -zeta * r
@@ -50,13 +50,13 @@ def mrr(A, b, epsilon, T):
             break
 
         # 解の更新
-        comm.Allgather(A[begin:end].dot(r), Ar)
-        comm.Allreduce(y[begin:end].dot(Ar[begin:end]), nu)
-        comm.Allreduce(y[begin:end].dot(y[begin:end]), mu)
+        comm.Allgather(local_A.dot(r), Ar)
+        nu = dot(y, Ar)
+        mu = dot(y, y)
         gamma = nu / mu
         s = Ar - gamma * y
-        comm.Allreduce(r[begin:end].dot(s[begin:end]), rs)
-        comm.Allreduce(s[begin:end].dot(s[begin:end]), ss)
+        rs = dot(r, s)
+        ss = dot(s, s)
         zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
