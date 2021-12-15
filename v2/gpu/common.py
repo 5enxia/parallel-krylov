@@ -4,7 +4,7 @@ import numpy as np
 import scipy
 from scipy.sparse import hstack, vstack, csr_matrix
 import cupy as cp
-import cupy.cuda import Device
+from cupy.cuda import Device
 from cupy.cuda.runtime import memcpyPeer
 
 from ..common import _start, _finish
