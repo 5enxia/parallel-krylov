@@ -1,5 +1,7 @@
 import numpy as np
+from numpy import dot
 from numpy.linalg import norm
+
 
 from .common import start, finish, init, init_mpi 
 
@@ -7,11 +9,10 @@ from .common import start, finish, init, init_mpi
 def kskipmrr(A, b, epsilon, k, T):
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
-    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T)
-    begin, end = rank * local_N, (rank+1) * local_N
+    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
+    Ax = np.empty(N, T)
 
     # 初期化
-    Ax = np.empty(N, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
     rAr = np.zeros(1, T)
@@ -19,13 +20,9 @@ def kskipmrr(A, b, epsilon, k, T):
     alpha = np.zeros(2*k + 3, T)
     beta = np.zeros(2*k + 2, T)
     delta = np.zeros(2*k + 1, T)
-    # local
-    local_alpha = np.zeros(2*k + 3, T)
-    local_beta = np.zeros(2*k + 2, T)
-    local_delta = np.zeros(2*k + 1, T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x), Ax)
+    comm.Allgather(local_A.dot(x), Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -33,9 +30,9 @@ def kskipmrr(A, b, epsilon, k, T):
     if rank == 0:
         start_time = start(method_name='k-skip MrR + MPI', k=k)
 
-    comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
-    comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]), rAr)
-    comm.Allreduce(Ar[1][begin:end].dot(Ar[1][begin:end]), ArAr)
+    comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+    rAr = dot(Ar[0], Ar[1])
+    ArAr = dot(Ar[1], Ar[1])
 
     zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
@@ -57,24 +54,20 @@ def kskipmrr(A, b, epsilon, k, T):
 
         # 基底計算
         for j in range(1, k + 1):
-            comm.Allgather(A[begin:end].dot(Ar[j-1]), Ar[j])
-            comm.Allgather(A[begin:end].dot(Ay[j-1]), Ay[j])
-        comm.Allgather(A[begin:end].dot(Ar[k]), Ar[k+1])
+            comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
+            comm.Allgather(local_A.dot(Ay[j-1]), Ay[j])
+        comm.Allgather(local_A.dot(Ar[k]), Ar[k+1])
 
         # 係数計算
-        local_alpha[0] = Ar[0][begin:end].dot(Ar[0][begin:end])
-        local_delta[0] = Ay[0][begin:end].dot(Ay[0][begin:end])
-        for j in range(1, 2*k+1):
+        for j in range(2 * k + 3):
+            jj = j // 2
+            alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
+        for j in range(1, 2 * k + 2):
             jj = j//2
-            local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            local_beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            local_delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        local_alpha[2*k+1] = Ar[k][begin:end].dot(Ar[k+1][begin:end])
-        local_beta[2*k+1] = Ay[k][begin:end].dot(Ar[k+1][begin:end])
-        local_alpha[2*k+2] = Ar[k+1][begin:end].dot(Ar[k+1][begin:end])
-        comm.Allreduce(local_alpha, alpha)
-        comm.Allreduce(local_beta, beta)
-        comm.Allreduce(local_delta, delta)
+            beta[j] = dot(Ay[jj], Ar[jj + j % 2])
+        for j in range(2 * k + 1):
+            jj = j // 2
+            delta[j] = dot(Ay[jj], Ay[jj + j % 2])
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
@@ -104,7 +97,7 @@ def kskipmrr(A, b, epsilon, k, T):
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
