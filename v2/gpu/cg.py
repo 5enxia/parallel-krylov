@@ -1,16 +1,18 @@
+from typing import MutableMapping
 from cupy import dot
 from cupy.linalg import norm
 
-from .common import start, finish, init, init_gpu
+from .common import start, finish, init, MultiGpu
 
 
 def cg(A, b, epsilon, T):
     # 初期化
-    init_gpu(0, 4)
+    MultiGpu.init_gpu(0, 1)
     A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    MultiGpu.alloc(A, b, T)
 
     # 初期残差
-    r = b - dot(A, x)
+    r = b - MultiGpu.dot(A, x)
     p = r.copy()
     gamma = dot(r, r)
 
@@ -25,7 +27,7 @@ def cg(A, b, epsilon, T):
             break
 
         # 解の更新
-        v = dot(A, p)
+        v = MultiGpu.dot(A, p)
         sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p
