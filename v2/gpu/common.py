@@ -137,7 +137,7 @@ class MultiGpu(object):
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
-    def dot(A, x):
+    def dot(A):
         # Copy vector data to All devices
         for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
             Device(i).use()

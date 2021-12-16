@@ -12,7 +12,8 @@ def cg(A, b, epsilon, T):
     MultiGpu.alloc(A, b, T)
 
     # 初期残差
-    r = b - MultiGpu.dot(A, x)
+    print(type(A), A.shape, type(A), A)
+    r = b - MultiGpu.dot(A)
     p = r.copy()
     gamma = dot(r, r)
 
