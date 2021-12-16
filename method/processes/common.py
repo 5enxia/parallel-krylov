@@ -60,6 +60,7 @@ def init(A, b, num_of_process, T, pu):
 
     old_N = b.size
     num_of_append = num_of_process - (old_N % num_of_process) # 足りない行を計算
+    num_of_append = 0 if num_of_append == num_of_process else num_of_append
     N = old_N + num_of_append
     local_N = N // num_of_process
 

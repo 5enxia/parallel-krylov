@@ -54,6 +54,7 @@ def cg(A, b, epsilon, T, pu):
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[i])
+        print(residual)
         return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
     else:
         exit(0)
