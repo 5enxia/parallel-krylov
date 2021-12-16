@@ -64,16 +64,16 @@ def init(A, b, T, num_of_thread):
 
     ## b
     if num_of_append:
-        b = np.append(b, np.zeros(num_of_append))  # 0を追加
-    b_norm = np.linalg.norm(b)
+        b = cp.append(b, np.zeros(num_of_append))  # 0を追加
+    b_norm = cp.linalg.norm(b)
 
     # x
-    x: np.ndarray = np.zeros(N, T)
+    x = cp.zeros(N, T)
 
     # その他パラメータ
-    max_iter: int = old_N * 2
-    residual: np.ndarray = np.zeros(max_iter+1, T)
-    num_of_solution_updates: np.ndarray = np.zeros(max_iter+1, np.int)
+    max_iter = old_N * 2
+    residual = cp.zeros(max_iter+1, T)
+    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
     return A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
