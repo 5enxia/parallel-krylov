@@ -46,9 +46,9 @@ def finish(start_time: float, isConverged: bool, num_of_iter: int, final_residua
 def init(A, b, T, num_of_thread):
     # 追加する要素数を算出
     old_N = b.size
-    num_of_append = num_of_thread - (old_N % num_of_thread) # 足りない行を計算
+    num_of_append: int = num_of_thread - (old_N % num_of_thread) # 足りない行を計算
     num_of_append = 0 if num_of_thread == num_of_thread else num_of_append
-    N = old_N + num_of_append
+    N: int = old_N + num_of_append
 
     ## A
     if num_of_append:
@@ -68,12 +68,12 @@ def init(A, b, T, num_of_thread):
     b_norm = np.linalg.norm(b)
 
     # x
-    x = np.zeros(N, T)
+    x: np.ndarray = np.zeros(N, T)
 
     # その他パラメータ
-    max_iter = old_N * 2
-    residual = np.zeros(max_iter+1, T)
-    num_of_solution_updates = np.zeros(max_iter+1, np.int)
+    max_iter: int = old_N * 2
+    residual: np.ndarray = np.zeros(max_iter+1, T)
+    num_of_solution_updates: np.ndarray = np.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
     return A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
@@ -98,7 +98,8 @@ class MultiGpu(object):
     local_nbytes: int = 0
 
     # GPUの初期化
-    def init_gpu(begin: int, end: int):
+    @classmethod
+    def init_gpu(cls, begin: int, end: int):
         MultiGpu.begin = begin
         MultiGpu.end = end
         MultiGpu.num_of_gpu = end - begin + 1
@@ -111,7 +112,8 @@ class MultiGpu(object):
 
     
     # メモリー領域を確保
-    def alloc(A, b, T):
+    @classmethod
+    def alloc(cls, A, b, T):
         # dimentional size
         MultiGpu.N = b.size
         MultiGpu.local_N = MultiGpu.N // MultiGpu.num_of_gpu
@@ -137,7 +139,7 @@ class MultiGpu(object):
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
-    def dot(A, x):
+    def dot(cls, A, x):
         # Copy vector data to All devices
         for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
             Device(i).use()
