@@ -54,8 +54,6 @@ def _mrr_gpu(A, b, epsilon, T, pu):
 
         # 解の更新
         comm.Allgather(A[begin:end].dot(r), Ar)
-        
-        comm.Allreduce(y[begin:end].dot(y[begin:end]).get(), mu_cpu)
         nu = dot(y, Ar)
         mu = dot(y, y)
         gamma = nu / mu
@@ -83,7 +81,7 @@ def _mrr_gpu(A, b, epsilon, T, pu):
 
 def mrr(A, b, epsilon, T, pu):
     comm, rank, num_of_process = init_mpi()
-    _mrr = _mrr_cpu if pu == 'cpu' else _mrr_gpu
+    _mrr = _mrr_gpu
     if rank == 0:
         return _mrr(A, b, epsilon, T, pu)
     else:

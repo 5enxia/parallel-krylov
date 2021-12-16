@@ -101,8 +101,8 @@ def init(A, b, num_of_process, T, pu):
         b_norm = cp.linalg.norm(b)
 
     max_iter = old_N * 2
-    residual = cp.zeros(max_iter+1, T)
-    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
+    residual = np.zeros(max_iter+1, T)
+    num_of_solution_updates = np.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
     return A, b, x,\
