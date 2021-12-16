@@ -1,6 +1,6 @@
 import numpy as np
 
-from .common import start, end, init, init_mpi
+from .common import start, end as finish, init, init_mpi
 
 
 def cg(A, b, epsilon, T, pu):
@@ -53,7 +53,7 @@ def cg(A, b, epsilon, T, pu):
         isConverged = False
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[i])
+        elapsed_time = finish(start_time, isConverged, i, residual[i])
         return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
     else:
         exit(0)
