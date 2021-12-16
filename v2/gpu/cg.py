@@ -12,14 +12,13 @@ def cg(A, b, epsilon, T):
     MultiGpu.alloc(A, b, T)
 
     # 初期残差
-    print(type(A), A.shape, type(A), A)
-    r = b - MultiGpu.dot(A)
+    r = b - MultiGpu.dot(A, x)
     p = r.copy()
     gamma = dot(r, r)
 
     # 反復計算
     i = 0
-    start_time = start(method_name='CG')
+    start_time = start(method_name='CG + GPU')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
