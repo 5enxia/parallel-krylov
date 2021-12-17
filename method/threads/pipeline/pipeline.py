@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-from .common import start, end, init
+from .common import start, end as finish, init
 
 
 def pipeline(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
@@ -58,5 +58,5 @@ def pipeline(A, b, ilu, epsilon, T=np.float64, pt='cpu'):
         u -= alpha*q
         w -= alpha*z
 
-    elapsed_time = end(start_time, isConverged, i, residual[i])
+    elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

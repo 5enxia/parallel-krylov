@@ -1,6 +1,6 @@
 import numpy as np
 
-from .common import start, end, init, init_mpi
+from .common import start, end as finish, init, init_mpi
 
 
 def _kskipcg_cpu(A, b, epsilon, k, T):
@@ -104,7 +104,7 @@ def _kskipcg_cpu(A, b, epsilon, k, T):
         residual[index] = norm(Ar[0]) / b_norm
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[index])
+        elapsed_time = finish(start_time, isConverged, i, residual[index])
         return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)
@@ -228,7 +228,7 @@ def _kskipcg_gpu(A, b, epsilon, k, T):
         residual[index] = norm(Ar[0]) / b_norm
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[index])
+        elapsed_time = finish(start_time, isConverged, i, residual[index])
         return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)

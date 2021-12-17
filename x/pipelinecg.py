@@ -9,7 +9,7 @@ if __name__ == "__main__":
     directory = os.path.join(homedir, 'krylov')
     sys.path.append(directory)
 
-from krylov.method.threads.common import start, end, init
+from krylov.method.threads.common import start, end as finish, init
 
 
 def pcg(A, b, M, epsilon, callback=None, T=np.float64):

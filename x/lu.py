@@ -9,7 +9,7 @@ if __name__ == "__main__":
     directory = os.path.join(homedir, 'krylov')
     sys.path.append(directory)
 
-from krylov.method.threads.common import start, end, init
+from krylov.method.threads.common import start, end as finish, init
 import krylov.method.threads.pcg as mpcg
 import krylov.method.threads.chronopoulos_gear as mcg
 import krylov.method.threads.pipeline as mpl

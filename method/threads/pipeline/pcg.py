@@ -1,5 +1,5 @@
 import numpy as np
-from .common import start, end, init
+from .common import start, end as finish, init
 
 def pcg(A, b, ilu, epsilon: float, T=np.float64, pt: str='cpu'):
     isConverged = False
@@ -44,5 +44,5 @@ def pcg(A, b, ilu, epsilon: float, T=np.float64, pt: str='cpu'):
 
         num_of_solution_updates[i] = i
 
-    elapsed_time = end(start_time, isConverged, i, residual[i])
+    elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

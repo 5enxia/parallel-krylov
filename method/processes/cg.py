@@ -46,7 +46,7 @@ def _cg_cpu(A, b, epsilon, T, pu):
         isConverged = False
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[i])
+        elapsed_time = finish(start_time, isConverged, i, residual[i])
         return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
     else:
         exit(0)
@@ -103,7 +103,7 @@ def _cg_gpu(A, b, epsilon, T, pu):
         isConverged = False
 
     if rank == 0:
-        elapsed_time = end(start_time, isConverged, i, residual[i])
+        elapsed_time = finish(start_time, isConverged, i, residual[i])
         return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
     else:
         exit(0)

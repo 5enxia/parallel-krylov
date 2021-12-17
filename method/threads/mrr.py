@@ -1,4 +1,4 @@
-from .common import start, end, init
+from .common import start, end as finish, init
 
 
 def mrr(A, b, epsilon, T, pu):
@@ -51,5 +51,5 @@ def mrr(A, b, epsilon, T, pu):
     else:
         isConverged = False
 
-    elapsed_time = end(start_time, isConverged, i, residual[i])
+    elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]

@@ -1,4 +1,4 @@
-from .common import start, end, init
+from .common import start, end as finish, init
 
 
 def kskipmrr(A, b, epsilon, k, T, pu):
@@ -110,5 +110,5 @@ def kskipmrr(A, b, epsilon, k, T, pu):
         isConverged = False
         residual[index] = norm(Ar[0]) / b_norm
 
-    elapsed_time = end(start_time, isConverged, i, residual[index])
+    elapsed_time = finish(start_time, isConverged, i, residual[index])
     return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
