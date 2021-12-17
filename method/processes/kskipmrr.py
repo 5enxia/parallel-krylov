@@ -239,7 +239,7 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[index])
-        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], krylov_base_times  # time
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)
 
