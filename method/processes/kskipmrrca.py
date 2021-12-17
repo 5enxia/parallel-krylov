@@ -140,7 +140,7 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     delta = cp.zeros(2*k + 1, T)
 
     # mpi recv
-    Ax = np.empty(N, T)
+    Ax = cp.empty(N, T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x), Ax)
