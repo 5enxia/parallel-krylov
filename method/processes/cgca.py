@@ -57,8 +57,11 @@ def _cg_gpu(A, b, epsilon, T, pu):
     from cupy.linalg import norm
     from cupy import dot
 
+    from .common import init_gpu
+
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
+    init_gpu(rank)
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     begin, end = rank * local_N, (rank+1) * local_N
 
