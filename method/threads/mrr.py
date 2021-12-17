@@ -30,19 +30,17 @@ def mrr(A, b, epsilon, T, pu):
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        if residual[i] < epsilon:
-            isConverged = True
+        isConverged = residual[i] < epsilon
+        if isConverged:
             break
 
         # 解の更新
         Ar = dot(A, r)
-        mu = dot(y, y)
         nu = dot(y, Ar)
+        mu = dot(y, y)
         gamma = nu / mu
         s = Ar - gamma * y
-        rs = dot(r, s)
-        ss = dot(s, s)
-        zeta = rs / ss
+        zeta = dot(r, s) / dot(s, s)
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
         z = eta * z - zeta * r

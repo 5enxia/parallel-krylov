@@ -45,11 +45,13 @@ def kskipmrr(A, b, epsilon, k, T, pu):
             isConverged = True
             break
 
-        # 事前計算
+        # 基底計算
         for j in range(1, k + 2):
             Ar[j] = dot(A, Ar[j-1])
         for j in range(1, k + 1):
             Ay[j] = dot(A, Ay[j-1])
+        
+        # 係数計算
         for j in range(2 * k + 3):
             jj = j // 2
             alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
