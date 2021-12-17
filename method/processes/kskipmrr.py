@@ -2,11 +2,12 @@ import time
 
 import numpy as np
 
-from .common import start, end as finish, init, init_mpi, krylov_base_start, krylov_base_finish
+from .common import start, end as finish, init, init_mpi
 
 
 def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
     from numpy.linalg import norm
+    from numpy import dot
 
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
@@ -17,15 +18,9 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
     Ax = np.empty(N, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
-    rAr = np.zeros(1, T)
-    ArAr = np.zeros(1, T)
     alpha = np.zeros(2*k + 3, T)
     beta = np.zeros(2*k + 2, T)
     delta = np.zeros(2*k + 1, T)
-    # local
-    local_alpha = np.zeros(2*k + 3, T)
-    local_beta = np.zeros(2*k + 2, T)
-    local_delta = np.zeros(2*k + 1, T)
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x), Ax)
@@ -37,9 +32,8 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
         start_time = start(method_name='k-skip MrR', k=k)
 
     comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
-    comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]), rAr)
-    comm.Allreduce(Ar[1][begin:end].dot(Ar[1][begin:end]), ArAr)
-
+    rAr = dot(Ar[0], Ar[1])
+    ArAr = dot(Ar[1], Ar[1])
     zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
@@ -59,25 +53,21 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
             break
 
         # 基底計算
-        for j in range(1, k + 1):
+        for j in range(1, k + 2):
             comm.Allgather(A[begin:end].dot(Ar[j-1]), Ar[j])
+        for j in range(1, k + 1):
             comm.Allgather(A[begin:end].dot(Ay[j-1]), Ay[j])
-        comm.Allgather(A[begin:end].dot(Ar[k]), Ar[k+1])
 
         # 係数計算
-        local_alpha[0] = Ar[0][begin:end].dot(Ar[0][begin:end])
-        local_delta[0] = Ay[0][begin:end].dot(Ay[0][begin:end])
-        for j in range(1, 2*k+1):
+        for j in range(2 * k + 3):
+            jj = j // 2
+            alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
+        for j in range(1, 2 * k + 2):
             jj = j//2
-            local_alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            local_beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            local_delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        local_alpha[2*k+1] = Ar[k][begin:end].dot(Ar[k+1][begin:end])
-        local_beta[2*k+1] = Ay[k][begin:end].dot(Ar[k+1][begin:end])
-        local_alpha[2*k+2] = Ar[k+1][begin:end].dot(Ar[k+1][begin:end])
-        comm.Allreduce(local_alpha, alpha)
-        comm.Allreduce(local_beta, beta)
-        comm.Allreduce(local_delta, delta)
+            beta[j] = dot(Ay[jj], Ar[jj + j % 2])
+        for j in range(2 * k + 1):
+            jj = j // 2
+            delta[j] = dot(Ay[jj], Ay[jj + j % 2])
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
@@ -130,6 +120,7 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
 def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     import cupy as cp
     from cupy.linalg import norm
+    from cupy import dot
 
     from .common import init_gpu
 
@@ -148,16 +139,10 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     alpha = cp.zeros(2*k + 3, T)
     beta = cp.zeros(2*k + 2, T)
     delta = cp.zeros(2*k + 1, T)
+
     # cpu
     Ar_cpu = np.zeros((k + 2, N), T)
     Ay_cpu = np.zeros((k + 1, N), T)
-    rAr_cpu = np.empty(1, T)
-    ArAr_cpu = np.empty(1, T)
-    alpha_cpu = np.zeros(2*k + 3, T)
-    beta_cpu = np.zeros(2*k + 2, T)
-    delta_cpu = np.zeros(2*k + 1, T)
-
-    krylov_base_times = np.zeros(max_iter, T)  # time
 
     # 初期残差
     comm.Allgather(A[begin:end].dot(x).get(), Ax)
@@ -168,23 +153,16 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     if rank == 0:
         start_time = start(method_name='k-skip MrR', k=k)
 
-    krylov_base_times[0] = krylov_base_start()  # time
-
-    Ar[1][begin:end] = A[begin:end].dot(Ar[0])
-    comm.Allgather(Ar[1][begin:end].get(), Ar_cpu[1])
+    comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
-    comm.Allreduce(Ar[0][begin:end].dot(Ar[1][begin:end]).get(), rAr_cpu)
-    comm.Allreduce(Ar[1][begin:end].dot(Ar[1][begin:end]).get(), ArAr_cpu)
-
-    krylov_base_times[0] = krylov_base_finish(krylov_base_times[0])  # time
-
-    rAr = cp.asarray(rAr_cpu)
-    ArAr = cp.asarray(ArAr_cpu)
+    rAr = dot(Ar[0], Ar[1])
+    ArAr = dot(Ar[1], Ar[1])
     zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
+
     i = 1
     index = 1
     num_of_solution_updates[1] = 1
@@ -198,35 +176,24 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             break
 
         # 基底計算
-        krylov_base_times[index] = krylov_base_start()  # time
-
-        for j in range(1, k + 1):
+        for j in range(1, k + 2):
             comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
-            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
             Ar[j] = cp.asarray(Ar_cpu[j])
+        for j in range(1, k + 1):
+            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
-        comm.Allgather(A[begin:end].dot(Ar[k]).get(), Ar_cpu[k+1])
-        Ar[k+1] = cp.asarray(Ar_cpu[k+1])
 
-        krylov_base_times[index] = krylov_base_finish(krylov_base_times[index])  # time
 
         # 係数計算
-        alpha[0] = Ar[0][begin:end].dot(Ar[0][begin:end])
-        delta[0] = Ay[0][begin:end].dot(Ay[0][begin:end])
-        for j in range(1, 2*k+1):
+        for j in range(2 * k + 3):
+            jj = j // 2
+            alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
+        for j in range(1, 2 * k + 2):
             jj = j//2
-            alpha[j] = Ar[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            beta[j] = Ay[jj][begin:end].dot(Ar[jj + j % 2][begin:end])
-            delta[j] = Ay[jj][begin:end].dot(Ay[jj + j % 2][begin:end])
-        alpha[2*k+1] = Ar[k][begin:end].dot(Ar[k+1][begin:end])
-        beta[2*k+1] = Ay[k][begin:end].dot(Ar[k+1][begin:end])
-        alpha[2*k+2] = Ar[k+1][begin:end].dot(Ar[k+1][begin:end])
-        comm.Allreduce(alpha.get(), alpha_cpu)
-        comm.Allreduce(beta.get(), beta_cpu)
-        comm.Allreduce(delta.get(), delta_cpu)
-        alpha = cp.asarray(alpha_cpu)
-        beta = cp.asarray(beta_cpu)
-        delta = cp.asarray(delta_cpu)
+            beta[j] = dot(Ay[jj], Ar[jj + j % 2])
+        for j in range(2 * k + 1):
+            jj = j // 2
+            delta[j] = dot(Ay[jj], Ay[jj + j % 2])
 
         # MrRでの1反復(解と残差の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2

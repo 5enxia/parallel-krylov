@@ -1,35 +1,23 @@
 import numpy as np
 
-from .common import start, end, init, init_mpi
+from .common import start, end as finish, init, init_mpi
 
 
-def cg(A, b, epsilon, T, pu):
-    comm, rank, num_of_process = init_mpi()
-    if pu == 'cpu':
-        from numpy.linalg import norm
-        from .cpu import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
-    else:
-        import cupy as cp
-        from cupy.linalg import norm
-        from .common import init_gpu
-        init_gpu(rank)
-        from .gpu import init_matvec, init_vecvec, mpi_matvec, mpi_vecvec1, mpi_vecvec2
+def _cg_cpu(A, b, epsilon, T, pu):
+    from numpy.linalg import norm
+    from numpy import dot
 
     # 共通初期化
+    comm, rank, num_of_process = init_mpi()
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
-    local_A, Ax, local_Ax = init_matvec(N, local_N, T)
-    local_a, local_b = init_vecvec(local_N, T)
-    if pu == 'cpu':
-        comm.Scatter(A, local_A)
-    else:
-        local_A_cpu = np.empty((local_N, N), T)
-        comm.Scatter(A, local_A_cpu)
-        local_A = cp.asarray(local_A_cpu)
+    begin, end = rank * local_N, (rank+1) * local_N
+    Ax = np.empty(N, T)
 
     # 初期残差
-    r = b - mpi_matvec(local_A, x, Ax, local_Ax, comm)
+    comm.Allgather(A[begin:end].dot(x), Ax)
+    r = b - Ax
     p = r.copy()
-    gamma = mpi_vecvec1(r, local_a, comm)
+    gamma = dot(r, r)
 
     # 反復計算
     i = 0
@@ -38,19 +26,18 @@ def cg(A, b, epsilon, T, pu):
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        isConverged = np.array([residual[i] < epsilon], bool)
-        comm.Bcast(isConverged)
+        isConverged = residual[i] < epsilon
         if isConverged:
             break
 
         # 解の更新
-        v = mpi_matvec(local_A, p, Ax, local_Ax, comm)
-        sigma = mpi_vecvec2(p, v, local_a, local_b, comm)
+        v = dot(A, p)
+        sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p
         r -= alpha * v
         old_gamma = gamma.copy()
-        gamma = mpi_vecvec1(r, local_a, comm)
+        gamma = dot(r, r)
         beta = gamma / old_gamma
         p = r + beta * p
         i += 1
@@ -63,3 +50,66 @@ def cg(A, b, epsilon, T, pu):
         return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
     else:
         exit(0)
+
+
+def _cg_gpu(A, b, epsilon, T, pu):
+    import cupy as cp
+    from cupy.linalg import norm
+    from cupy import dot
+
+    # 共通初期化
+    comm, rank, num_of_process = init_mpi()
+    A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
+    begin, end = rank * local_N, (rank+1) * local_N
+
+    # cpu
+    Ax = np.empty(N, T)
+    v_cpu = np.empty(N, T)
+
+    # 初期残差
+    comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    r = b - cp.asarray(Ax)
+    p = r.copy()
+    gamma = dot(r, r)
+
+    # 反復計算
+    i = 0
+    if rank == 0:
+        start_time = start(method_name='CG')
+    while i < max_iter:
+        # 収束判定
+        residual[i] = norm(r) / b_norm
+        isConverged = residual[i] < epsilon
+        if isConverged:
+            break
+
+        # 解の更新
+        comm.Allgather(A[begin:end].dot(p).get(), v_cpu)
+        v = cp.asarray(v_cpu)
+        sigma = dot(p, v)
+        alpha = gamma / sigma
+        x += alpha * p
+        r -= alpha * v
+        old_gamma = gamma.copy()
+        gamma = dot(r, r)
+        beta = gamma / old_gamma
+        p = r + beta * p
+        i += 1
+        num_of_solution_updates[i] = i
+    else:
+        isConverged = False
+
+    if rank == 0:
+        elapsed_time = end(start_time, isConverged, i, residual[i])
+        return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
+    else:
+        exit(0)
+
+
+def cg(A, b, epsilon, T, pu):
+    comm, rank, num_of_process = init_mpi()
+    _cg = _cg_cpu if pu == 'cpu' else _cg_gpu
+    if rank == 0:
+        return _cg(A, b, epsilon, T, pu)
+    else:
+        _cg(A, b, epsilon, T, pu)
