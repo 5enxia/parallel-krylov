@@ -16,7 +16,7 @@ def mrr(A, b, epsilon, T, pu):
     residual[0] = norm(r) / b_norm
 
     # 初期反復
-    start_time = start(method_name='MrR')
+    start_time = start(method_name=f'MrR + {pu}')
     Ar = dot(A, r)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar

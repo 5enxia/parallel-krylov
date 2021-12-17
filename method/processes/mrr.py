@@ -23,7 +23,7 @@ def _mrr_cpu(A, b, epsilon, T, pu):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='MrR')
+        start_time = start(method_name=f'MrR + {pu} + mpi')
     comm.Allgather(A[begin:end].dot(r), Ar)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar
@@ -95,7 +95,7 @@ def _mrr_gpu(A, b, epsilon, T, pu):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='MrR')
+        start_time = start(method_name=f'MrR + {pu} + mpi')
     comm.Allgather(A[begin:end].dot(r).get(), Ar_cpu)
     Ar = cp.asarray(Ar_cpu)
     zeta = dot(r, Ar) / dot(Ar, Ar)

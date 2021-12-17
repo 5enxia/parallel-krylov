@@ -26,7 +26,7 @@ def kskipmrr(A, b, epsilon, k, T, pu):
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
-    start_time = start(method_name='k-skip MrR', k=k)
+    start_time = start(method_name=f'k-skip MrR + {pu}', k=k)
     Ar[1] = dot(A, Ar[0])
     zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]

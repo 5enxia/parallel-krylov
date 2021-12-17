@@ -22,7 +22,7 @@ def _cg_cpu(A, b, epsilon, T, pu):
     # 反復計算
     i = 0
     if rank == 0:
-        start_time = start(method_name='CG')
+        start_time = start(method_name=f'CG + {pu} + mpi')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
@@ -75,7 +75,7 @@ def _cg_gpu(A, b, epsilon, T, pu):
     # 反復計算
     i = 0
     if rank == 0:
-        start_time = start(method_name='CG')
+        start_time = start(method_name=f'CG + {pu} + mpi')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm

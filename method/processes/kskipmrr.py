@@ -29,7 +29,7 @@ def _kskipmrr_cpu(A, b, epsilon, k, T, pu):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='k-skip MrR', k=k)
+        start_time = start(method_name=f'k-skip MrR + {pu} + mpi', k=k)
 
     comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
     rAr = dot(Ar[0], Ar[1])
@@ -151,7 +151,7 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='k-skip MrR', k=k)
+        start_time = start(method_name=f'k-skip MrR + {pu} + mpi', k=k)
 
     comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
