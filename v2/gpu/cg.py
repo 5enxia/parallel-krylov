@@ -1,4 +1,3 @@
-from typing import MutableMapping
 from cupy import dot
 from cupy.linalg import norm
 

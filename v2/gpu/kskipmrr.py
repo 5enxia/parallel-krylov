@@ -1,6 +1,6 @@
-import numpy as  np
-from numpy import dot
-from numpy.linalg import norm
+from cupy import cp
+from cupy import dot
+from cupy.linalg import norm
 
 from .common import start, finish, init, MultiGpu
 
@@ -12,11 +12,11 @@ def kskipmrr(A, b, epsilon, k, T):
     MultiGpu.alloc(A, b, T)
 
     # 初期化
-    Ar = np.empty((k + 2, N), T)
-    Ay = np.empty((k + 1, N), T)
-    alpha = np.empty(2 * k + 3, T)
-    beta = np.empty(2 * k + 2, T)
-    delta = np.empty(2 * k + 1, T)
+    Ar = cp.empty((k + 2, N), T)
+    Ay = cp.empty((k + 1, N), T)
+    alpha = cp.empty(2 * k + 3, T)
+    beta = cp.empty(2 * k + 2, T)
+    delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差

@@ -1,5 +1,5 @@
-from numpy import dot
-from numpy.linalg import norm
+from cupy import dot
+from cupy.linalg import norm
 
 from .common import start, finish, init, MultiGpu
 
