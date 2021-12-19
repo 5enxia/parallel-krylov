@@ -140,10 +140,15 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     delta = cp.zeros(2*k + 1, T)
 
     # mpi recv
+    local_Ax = cp.empty(local_N, T)
     Ax = cp.empty(N, T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x), Ax)
+    # comm.Allgather(A[begin:end].dot(x), Ax)
+    local_Ax = A[begin:end].dot(x)
+    cp.cuda.get_current_stream().synchronize()
+    comm.Allgather(local_Ax, Ax)
+
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -151,7 +156,11 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     if rank == 0:
         start_time = start(method_name=f'k-skip MrR + {pu} + mpi + cuda_aware', k=k)
 
-    comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+    # comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+    local_Ax = A[begin:end].dot(Ar[0])
+    cp.cuda.get_current_stream().synchronize()
+    comm.Allgather(local_Ax, Ar[1])
+
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
     zeta = rAr / ArAr
@@ -174,9 +183,15 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
         # 基底計算
         for j in range(1, k + 2):
-            comm.Allgather(A[begin:end].dot(Ar[j-1]), Ar[j])
+            # comm.Allgather(A[begin:end].dot(Ar[j-1]), Ar[j])
+            local_Ax = A[begin:end].dot(Ar[j-1])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax, Ar[j])
         for j in range(1, k + 1):
-            comm.Allgather(A[begin:end].dot(Ay[j-1]), Ay[j])
+            # comm.Allgather(A[begin:end].dot(Ay[j-1]), Ay[j])
+            local_Ax = A[begin:end].dot(Ar[j-1])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax, Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -217,7 +232,12 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+
+            # comm.Allgather(A[begin:end].dot(Ar[0]), Ar[1])
+            local_Ax = A[begin:end].dot(Ar[0])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax, Ay[1])
+
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
