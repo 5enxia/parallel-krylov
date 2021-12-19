@@ -127,6 +127,9 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
     init_gpu(rank)
+    for i in range(4):
+        for j in range(4):
+            cp.cuda.runtime.deviceCanAccessPeer(i, j)
     A, b, x, b_norm, N, local_N, max_iter, residual, num_of_solution_updates = init(A, b, num_of_process, T, pu)
     begin, end = rank * local_N, (rank+1) * local_N
 
