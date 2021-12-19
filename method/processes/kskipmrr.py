@@ -131,7 +131,6 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     begin, end = rank * local_N, (rank+1) * local_N
 
     # 初期化
-    Ax = np.empty(N, T)
     Ar = cp.zeros((k + 2, N), T)
     Ay = cp.zeros((k + 1, N), T)
     rAr = cp.empty(1, T)
@@ -141,11 +140,17 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     delta = cp.zeros(2*k + 1, T)
 
     # cpu
+    Ax = np.empty(N, T)
+    local_Ax = cp.empty(local_N, T)
     Ar_cpu = np.zeros((k + 2, N), T)
     Ay_cpu = np.zeros((k + 1, N), T)
 
     # 初期残差
-    comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    # comm.Allgather(A[begin:end].dot(x).get(), Ax)
+    local_Ax = A[begin:end].dot(x)
+    cp.cuda.get_current_stream().synchronize()
+    comm.Allgather(local_Ax.get(), Ax)
+
     Ar[0] = b - cp.asarray(Ax)
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -153,7 +158,11 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
     if rank == 0:
         start_time = start(method_name=f'k-skip MrR + {pu} + mpi', k=k)
 
-    comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+    # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+    local_Ax = A[begin:end].dot(Ar[0])
+    cp.cuda.get_current_stream().synchronize()
+
+    comm.Allgather(local_Ax.get(), Ar_cpu[1])
     Ar[1] = cp.asarray(Ar_cpu[1])
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
@@ -177,10 +186,16 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
 
         # 基底計算
         for j in range(1, k + 2):
-            comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ar[j-1]).get(), Ar_cpu[j])
+            local_Ax = A[begin:end].dot(Ar[j-1])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax.get(), Ar_cpu[j])
             Ar[j] = cp.asarray(Ar_cpu[j])
         for j in range(1, k + 1):
-            comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            # comm.Allgather(A[begin:end].dot(Ay[j-1]).get(), Ay_cpu[j])
+            local_Ax = A[begin:end].dot(Ay[j-1])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax.get(), Ay_cpu[j])
             Ay[j] = cp.asarray(Ay_cpu[j])
 
 
@@ -223,7 +238,12 @@ def _kskipmrr_gpu(A, b, epsilon, k, T, pu):
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+
+            # comm.Allgather(A[begin:end].dot(Ar[0]).get(), Ar_cpu[1])
+            local_Ax = A[begin:end].dot(Ar[0])
+            cp.cuda.get_current_stream().synchronize()
+            comm.Allgather(local_Ax.get(), Ar_cpu[1])
+
             Ar[1] = cp.asarray(Ar_cpu[1])
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
