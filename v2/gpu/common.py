@@ -131,9 +131,10 @@ class MultiGpu(object):
         # allocate x, y
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            cls.A[i-cls.begin] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
-            cls.x[i-cls.begin] = cp.empty(cls.N, T)
-            cls.y[i-cls.begin] = cp.empty(cls.local_N, T)
+            index = i-cls.begin
+            cls.A[index] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
+            cls.x[index] = cp.empty(cls.N, T)
+            cls.y[index] = cp.empty(cls.local_N, T)
 
         # init out vector
         cls.out = cp.empty(cls.N, T)
@@ -144,14 +145,17 @@ class MultiGpu(object):
         # Copy vector data to All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            cp.cuda.runtime.memcpyPeer(cls.x[i].data.ptr, i, x.data.ptr, 0, cls.nbytes)
+            index = i-cls.begin
+            cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, 0, cls.nbytes)
         # dot
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            cp.dot(cls.A[i-cls.begin], cls.x[i], out=cls.y[i-cls.begin])
+            index = i-cls.begin 
+            cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).synchronize()
+            index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
         # return
         return cls.out
