@@ -63,6 +63,7 @@ def init(A, b, T, num_of_thread):
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
 
     ## b
+    b = cp.array(b, T)
     if num_of_append:
         b = cp.append(b, np.zeros(num_of_append))  # 0を追加
     b_norm = cp.linalg.norm(b)
@@ -100,9 +101,9 @@ class MultiGpu(object):
     # GPUの初期化
     @classmethod
     def init_gpu(cls, begin: int, end: int):
-        MultiGpu.begin = begin
-        MultiGpu.end = end
-        MultiGpu.num_of_gpu = end - begin + 1
+        cls.begin = begin
+        cls.end = end
+        cls.num_of_gpu = end - begin + 1
 
         # init memory allocator
         for i in range(end, begin-1, -1):
@@ -115,42 +116,42 @@ class MultiGpu(object):
     @classmethod
     def alloc(cls, A, b, T):
         # dimentional size
-        MultiGpu.N = b.size
-        MultiGpu.local_N = MultiGpu.N // MultiGpu.num_of_gpu
+        cls.N = b.size
+        cls.local_N = cls.N // cls.num_of_gpu
         # byte size
-        MultiGpu.nbytes = b.nbytes
-        MultiGpu.local_nbytes = b.nbytes // MultiGpu.num_of_gpu
+        cls.nbytes = b.nbytes
+        cls.local_nbytes = b.nbytes // cls.num_of_gpu
 
         # init list
-        MultiGpu.A = [None] * MultiGpu.num_of_gpu
-        MultiGpu.x = [None] * MultiGpu.num_of_gpu
-        MultiGpu.y = [None] * MultiGpu.num_of_gpu
+        cls.A = [None] * cls.num_of_gpu
+        cls.x = [None] * cls.num_of_gpu
+        cls.y = [None] * cls.num_of_gpu
 
         # divide single A -> multi local_A
         # allocate x, y
-        for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
+        for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            MultiGpu.A[i-MultiGpu.begin] = cp.array(A[i*MultiGpu.local_N:(i+1)*MultiGpu.local_N]) # Note: Change line when use csr
-            MultiGpu.x[i-MultiGpu.begin] = cp.array(MultiGpu.N, T)
-            MultiGpu.y[i-MultiGpu.begin] = cp.array(MultiGpu.local_N, T)
+            cls.A[i-cls.begin] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
+            cls.x[i-cls.begin] = cp.empty(cls.N, T)
+            cls.y[i-cls.begin] = cp.empty(cls.local_N, T)
 
         # init out vector
-        MultiGpu.out = np.empty(MultiGpu.N)
+        cls.out = cp.empty(cls.N, T)
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
     def dot(cls, A, x):
         # Copy vector data to All devices
-        for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
+        for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            cp.cuda.runtime.memcpyPeer(MultiGpu.x[i].data.ptr, i, x.data.ptr, 0, MultiGpu.nbytes)
+            cp.cuda.runtime.memcpyPeer(cls.x[i].data.ptr, i, x.data.ptr, 0, cls.nbytes)
         # dot
-        for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
+        for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            cp.dot(MultiGpu.A[i-MultiGpu.begin], MultiGpu.x[i], out=MultiGpu.y[i-MultiGpu.begin])
+            cp.dot(cls.A[i-cls.begin], cls.x[i], out=cls.y[i-cls.begin])
         # Gather caculated element from All devices
-        for i in range(MultiGpu.end, MultiGpu.begin-1, -1):
+        for i in range(cls.end, cls.begin-1, -1):
             Device(i).synchronize()
-            cp.cuda.runtime.memcpyPeer(MultiGpu.out[MultiGpu.local_N*i].data.ptr, 0, MultiGpu.y[i-MultiGpu.begin].data.ptr, i, MultiGpu.local_nbytes)
+            cp.cuda.runtime.memcpyPeer(cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
         # return
-        return MultiGpu.out
+        return cls.out
