@@ -7,8 +7,8 @@ from .common import start, finish, init, MultiGpu
 
 def kskipmrr(A, b, epsilon, k, T):
     # 初期化
-    MultiGpu.init_gpu(0, 1)
-    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, 2)
+    MultiGpu.init_gpu(0, 3)
+    A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, 4)
     MultiGpu.alloc(A, b, T)
 
     # 初期化
