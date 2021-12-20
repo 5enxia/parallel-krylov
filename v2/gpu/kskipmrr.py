@@ -1,4 +1,4 @@
-from cupy import cp
+import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 
