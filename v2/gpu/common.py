@@ -132,7 +132,11 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
-            cls.A[index] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
+            if isinstance(A, np.ndarray):
+                cls.A[index] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
+            elif isinstance(A, scipy.sparse.csr.csr_matrix):
+                A = csr_matrix(A)
+                cls.A[index] = A[i*cls.local_N:(i+1)*cls.local_N] # Note: Change line when use csr
             cls.x[index] = cp.empty(cls.N, T)
             cls.y[index] = cp.empty(cls.local_N, T)
 
