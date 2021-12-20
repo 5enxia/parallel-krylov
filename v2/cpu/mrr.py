@@ -8,13 +8,13 @@ def mrr(A, b, epsilon, T):
     x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期残差
-    r = b - dot(A, x)
+    r = b - A.dot(x)
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     i = 0
     start_time = start(method_name='MrR')
-    Ar = dot(A, r)
+    Ar = A.dot(r)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar
     z = -zeta * r
@@ -32,7 +32,7 @@ def mrr(A, b, epsilon, T):
             break
 
         # 解の更新
-        Ar = dot(A, r)
+        Ar = A.dot(r)
         mu = dot(y, y)
         nu = dot(y, Ar)
         gamma = nu / mu

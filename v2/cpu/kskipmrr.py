@@ -18,12 +18,12 @@ def kskipmrr(A, b, epsilon, k, T):
     beta[0] = 0
 
     # 初期残差
-    Ar[0] = b - dot(A, x)
+    Ar[0] = b - A.dot(x)
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     start_time = start(method_name='k-skip MrR', k=k)
-    Ar[1] = dot(A, Ar[0])
+    Ar[1] = A.dot(Ar[0])
     zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
@@ -43,9 +43,9 @@ def kskipmrr(A, b, epsilon, k, T):
 
         # 基底計算
         for j in range(1, k + 2):
-            Ar[j] = dot(A, Ar[j-1])
+            Ar[j] = A.dot(Ar[j-1])
         for j in range(1, k + 1):
-            Ay[j] = dot(A, Ay[j-1])
+            Ay[j] = A.dot(Ay[j-1])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -65,7 +65,7 @@ def kskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        Ar[1] = dot(A, Ar[0])
+        Ar[1] = A.dot(Ar[0])
         x -= z
 
         # MrRでのk反復
@@ -89,7 +89,7 @@ def kskipmrr(A, b, epsilon, k, T):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            Ar[1] = dot(A, Ar[0])
+            Ar[1] = A.dot(Ar[0])
             x -= z
 
         i += (k + 1)
