@@ -2,7 +2,6 @@ import time
 
 import numpy as np
 import scipy
-from scipy.sparse import hstack, vstack, csr_matrix
 import cupy as cp
 from cupy.cuda import Device
 
@@ -58,6 +57,7 @@ def init(A, b, T, num_of_thread):
                 A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
                 A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
         elif isinstance(A, scipy.sparse.csr.csr_matrix):
+            from scipy.sparse import hstack, vstack, csr_matrix
             if num_of_append:
                 A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
@@ -135,6 +135,7 @@ class MultiGpu(object):
             if isinstance(A, np.ndarray):
                 cls.A[index] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T) # Note: Change line when use csr
             elif isinstance(A, scipy.sparse.csr.csr_matrix):
+                from cupyx.scipy.sparse import hstack, vstack, csr_matrix
                 A = csr_matrix(A)
                 cls.A[index] = A[i*cls.local_N:(i+1)*cls.local_N] # Note: Change line when use csr
             cls.x[index] = cp.empty(cls.N, T)
