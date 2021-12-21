@@ -4,50 +4,33 @@ import numpy as np
 import scipy
 import cupy as cp
 from cupy.cuda import Device
+from mpi4py import MPI
 
 from ..common import _start, _finish
 
 
 # 計測開始
-def start(method_name: str = '', k: int = None) -> float:
-    """[summary]
-
-    Args:
-        method_name (str, optional): [description]. Defaults to ''.
-        k (int, optional): [description]. Defaults to None.
-
-    Returns:
-        float: [description]
-    """
+def start(method_name='', k=None):
     _start(method_name, k)
-    return time.perf_counter()
+    return MPI.Wtime()
 
 
 # 計測終了
-def finish(start_time: float, isConverged: bool, num_of_iter: int, final_residual: float, final_k: int = None) -> float:
-    """[summary]
-
-    Args:
-        start_time (float): [description]
-        isConverged (bool): [description]
-        num_of_iter (int): [description]
-        final_residual (float): [description]
-        final_k (int, optional): [description]. Defaults to None.
-
-    Returns:
-        float: [description]
-    """
-    elapsed_time = time.perf_counter() - start_time
+def finish(start_time, isConverged, num_of_iter, final_residual, final_k=None):
+    elapsed_time = MPI.Wtime() - start_time
     _finish(elapsed_time, isConverged, num_of_iter, final_residual, final_k)
     return elapsed_time
 
+
 # パラメータの初期化
-def init(A, b, T, num_of_thread):
+def init(A, b, T, rank, num_of_process) -> tuple:
     # 追加する要素数を算出
     old_N = b.size
-    num_of_append: int = num_of_thread - (old_N % num_of_thread) # 足りない行を計算
-    num_of_append = 0 if num_of_thread == num_of_thread else num_of_append
-    N: int = old_N + num_of_append
+    num_of_append = num_of_process - (old_N % num_of_process) # 足りない行を計算
+    num_of_append = 0 if num_of_append == num_of_process else num_of_append
+    N = old_N + num_of_append
+    local_N = N // num_of_process
+    begin, end = rank * local_N, (rank+1) * local_N
 
     ## A
     if num_of_append:
@@ -61,23 +44,24 @@ def init(A, b, T, num_of_thread):
             if num_of_append:
                 A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
                 A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
+    local_A = A[begin:end]
 
     ## b
-    b = cp.array(b, T)
     if num_of_append:
-        b = cp.append(b, np.zeros(num_of_append))  # 0を追加
-    b_norm = cp.linalg.norm(b)
+        b = np.append(b, np.zeros(num_of_append))  # 0を追加
+    b_norm = np.linalg.norm(b)
 
     # x
-    x = cp.zeros(N, T)
+    x = np.zeros(N, T)
 
     # その他パラメータ
     max_iter = old_N * 2
-    residual = cp.zeros(max_iter+1, T)
-    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
+    residual = np.zeros(max_iter+1, T)
+    num_of_solution_updates = np.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
-    return A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
+
+    return local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
 
 
 class MultiGpu(object):
@@ -165,3 +149,29 @@ class MultiGpu(object):
             cp.cuda.runtime.memcpyPeer(cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
         # return
         return cls.out
+
+
+# mpi
+def init_mpi():
+    comm = MPI.COMM_WORLD
+    return comm, comm.Get_rank(), comm.Get_size()
+
+
+def calc_alloc_gpu(rank: int, num_of_process: int) -> tuple:
+    # local
+    if num_of_process == 2:
+        return rank, rank
+    # ito
+    elif num_of_process == 4:
+        return 0, 3
+    elif num_of_process == 8:
+        # odd
+        if rank % 2 == 0:
+            return 0, 1
+        else:
+            return 2, 3
+    elif num_of_process == 16:
+        _id = rank % 4
+        return _id, _id 
+    else:
+        return 0, 0
