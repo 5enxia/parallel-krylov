@@ -157,9 +157,6 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin 
-            print(type(cls.y[index]))
-            print(type(cls.A[index]))
-            print(type(cls.x[index]))
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
