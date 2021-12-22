@@ -65,7 +65,7 @@ def init(A, b, T, num_of_thread):
     ## b
     b = cp.array(b, T)
     if num_of_append:
-        b = cp.append(b, np.zeros(num_of_append))  # 0を追加
+        b = cp.append(b, cp.zeros(num_of_append))  # 0を追加
     b_norm = cp.linalg.norm(b)
 
     # x
