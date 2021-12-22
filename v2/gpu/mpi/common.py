@@ -47,17 +47,18 @@ def init(A, b, T, rank, num_of_process, num_of_all_of_gpu = 16) -> tuple:
     local_A = A[begin:end]
 
     ## b
+    b = cp.array(b, T)
     if num_of_append:
-        b = np.append(b, np.zeros(num_of_append))  # 0を追加
-    b_norm = np.linalg.norm(b)
+        b = cp.append(b, cp.zeros(num_of_append))  # 0を追加
+    b_norm = cp.linalg.norm(b)
 
     # x
-    x = np.zeros(N, T)
+    x = cp.zeros(N, T)
 
     # その他パラメータ
     max_iter = old_N * 2
-    residual = np.zeros(max_iter+1, T)
-    num_of_solution_updates = np.zeros(max_iter+1, np.int)
+    residual = cp.zeros(max_iter+1, T)
+    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
     return local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
@@ -120,10 +121,10 @@ class MultiGpu(object):
             Device(i).use()
             index = i-cls.begin
             # npy
-            if isinstance(A, np.ndarray):
+            if isinstance(local_A, np.ndarray):
                 cls.A[index] = cp.array(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N], T)
             # npz
-            elif isinstance(A, scipy.sparse.csr.csr_matrix):
+            elif isinstance(local_A, scipy.sparse.csr.csr_matrix):
                 from cupyx.scipy.sparse import csr_matrix
                 cls.A[index] = csr_matrix(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N])
             cls.x[index] = cp.empty(cls.N, T)
