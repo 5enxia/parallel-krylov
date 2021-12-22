@@ -1,5 +1,7 @@
+import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
+from mpi4py import MPI
 
 from .common import start, finish, init, MultiGpu, init_mpi, calc_alloc_gpu
 
@@ -11,14 +13,18 @@ def cg(A, b, epsilon, T):
     comm, rank, num_of_process = init_mpi()
 
     # GPU初期化
-    MultiGpu.init_gpu(calc_alloc_gpu(rank, num_of_process))
+    begin, end = calc_alloc_gpu(rank, num_of_process)
+    MultiGpu.init_gpu(begin, end, num_of_process)
 
     # 初期化
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, 16)
-    MultiGpu.alloc(A, b, T)
+    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
+    MultiGpu.alloc(local_A, b, T)
+    Ax = cp.empty(N, T)
+    v = cp.empty(N, T)
 
     # 初期残差
-    r = b - MultiGpu.dot(A, x)
+    comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    r = b - Ax
     p = r.copy()
     gamma = dot(r, r)
 
@@ -33,7 +39,7 @@ def cg(A, b, epsilon, T):
             break
 
         # 解の更新
-        v = MultiGpu.dot(A, p)
+        comm.Allgather(MultiGpu.dot(local_A, p), v)
         sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p

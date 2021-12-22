@@ -23,11 +23,11 @@ def finish(start_time, isConverged, num_of_iter, final_residual, final_k=None):
 
 
 # パラメータの初期化
-def init(A, b, T, rank, num_of_process) -> tuple:
+def init(A, b, T, rank, num_of_process, num_of_all_of_gpu = 16) -> tuple:
     # 追加する要素数を算出
     old_N = b.size
-    num_of_append = num_of_process - (old_N % num_of_process) # 足りない行を計算
-    num_of_append = 0 if num_of_append == num_of_process else num_of_append
+    num_of_append = num_of_all_of_gpu - (old_N % num_of_all_of_gpu) # 足りない行を計算
+    num_of_append = 0 if num_of_append == num_of_all_of_gpu else num_of_append
     N = old_N + num_of_append
     local_N = N // num_of_process
     begin, end = rank * local_N, (rank+1) * local_N
@@ -60,7 +60,6 @@ def init(A, b, T, rank, num_of_process) -> tuple:
     num_of_solution_updates = np.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
 
-
     return local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
 
 
@@ -69,9 +68,11 @@ class MultiGpu(object):
     begin: int = 0
     end: int = 0
     num_of_gpu: int = 0
+    num_of_process: int = 0
     # dimentinal size
     N: int = 0
     local_N: int = 0
+    local_local_N: int = 0
     # matrix
     A: list = []
     # vector
@@ -84,10 +85,11 @@ class MultiGpu(object):
 
     # GPUの初期化
     @classmethod
-    def init_gpu(cls, begin: int, end: int):
+    def init_gpu(cls, begin: int, end: int, num_of_process: int):
         cls.begin = begin
         cls.end = end
         cls.num_of_gpu = end - begin + 1
+        cls.num_of_process = num_of_process
 
         # init memory allocator
         for i in range(end, begin-1, -1):
@@ -98,13 +100,14 @@ class MultiGpu(object):
     
     # メモリー領域を確保
     @classmethod
-    def alloc(cls, A, b, T):
+    def alloc(cls, local_A, b, T):
         # dimentional size
-        cls.N = b.size
-        cls.local_N = cls.N // cls.num_of_gpu
+        cls.local_N, cls.N = local_A.shape
+        cls.local_local_N = cls.local_N // cls.num_of_gpu
         # byte size
         cls.nbytes = b.nbytes
-        cls.local_nbytes = b.nbytes // cls.num_of_gpu
+        cls.local_nbytes = cls.nbytes // cls.num_of_process
+        cls.local_local_nbytes = cls.local_nbytes // cls.num_of_gpu
 
         # init list
         cls.A = [None] * cls.num_of_gpu
@@ -118,16 +121,16 @@ class MultiGpu(object):
             index = i-cls.begin
             # npy
             if isinstance(A, np.ndarray):
-                cls.A[index] = cp.array(A[i*cls.local_N:(i+1)*cls.local_N], T)
+                cls.A[index] = cp.array(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N], T)
             # npz
             elif isinstance(A, scipy.sparse.csr.csr_matrix):
                 from cupyx.scipy.sparse import csr_matrix
-                cls.A[index] = csr_matrix(A[i*cls.local_N:(i+1)*cls.local_N])
+                cls.A[index] = csr_matrix(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N])
             cls.x[index] = cp.empty(cls.N, T)
-            cls.y[index] = cp.empty(cls.local_N, T)
+            cls.y[index] = cp.empty(cls.local_local_N, T)
 
         # init out vector
-        cls.out = cp.empty(cls.N, T)
+        cls.out = cp.empty(cls.local_N, T)
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
@@ -144,9 +147,9 @@ class MultiGpu(object):
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
-            Device(i).synchronize()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
+            Device(i).synchronize()
+            cp.cuda.runtime.memcpyPeer(cls.out[cls.local_local_N*i].data.ptr, 0, cls.y[index].data.ptr, i, cls.local_local_nbytes)
         # return
         return cls.out
 
