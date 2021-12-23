@@ -120,13 +120,14 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
+            begin, end = i*cls.local_local_N, (i+1)*cls.local_local_N
             # npy
             if isinstance(local_A, np.ndarray):
-                cls.A[index] = cp.array(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N], T)
+                cls.A[index] = cp.array(local_A[begin:end], T)
             # npz
             elif isinstance(local_A, scipy.sparse.csr.csr_matrix):
                 from cupyx.scipy.sparse import csr_matrix
-                cls.A[index] = csr_matrix(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N])
+                cls.A[index] = csr_matrix(local_A[begin:end])
             cls.x[index] = cp.zeros(cls.N, T)
             cls.y[index] = cp.zeros(cls.local_local_N, T)
 
@@ -141,22 +142,16 @@ class MultiGpu(object):
             Device(i).use()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
-            # print(x, cls.x[index])
-            Device(i).synchronize()
         # dot
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
             cls.y[index] = cls.A[index].dot(cls.x[index])
-            # print(cls.y[index])
-            Device(i).synchronize()
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
-            index = i-cls.begin
-            #cp.cuda.get_current_stream().synchronize()
-            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
             Device(i).synchronize()
-        # print(cls.out)
+            index = i-cls.begin
+            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
         return cls.out
 
 
