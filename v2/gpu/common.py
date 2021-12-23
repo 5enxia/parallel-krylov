@@ -46,7 +46,7 @@ def init(A, b, T, num_of_thread):
     # 追加する要素数を算出
     old_N = b.size
     num_of_append: int = num_of_thread - (old_N % num_of_thread) # 足りない行を計算
-    num_of_append = 0 if num_of_thread == num_of_thread else num_of_append
+    num_of_append = 0 if num_of_append == num_of_thread else num_of_append
     N: int = old_N + num_of_append
 
     ## A
