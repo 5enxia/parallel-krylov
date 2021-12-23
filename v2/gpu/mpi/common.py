@@ -127,11 +127,11 @@ class MultiGpu(object):
             elif isinstance(local_A, scipy.sparse.csr.csr_matrix):
                 from cupyx.scipy.sparse import csr_matrix
                 cls.A[index] = csr_matrix(local_A[i*cls.local_local_N:(i+1)*cls.local_local_N])
-            cls.x[index] = cp.empty(cls.N, T)
-            cls.y[index] = cp.empty(cls.local_local_N, T)
+            cls.x[index] = cp.zeros(cls.N, T)
+            cls.y[index] = cp.zeros(cls.local_local_N, T)
 
         # init out vector
-        cls.out = cp.empty(cls.local_N, T)
+        cls.out = cp.zeros(cls.local_N, T)
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
@@ -140,17 +140,18 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, 0, cls.nbytes)
+            cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
         # dot
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
-            index = i-cls.begin 
+            index = i-cls.begin
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
             index = i-cls.begin
             Device(i).synchronize()
-            cp.cuda.runtime.memcpyPeer(cls.out[cls.local_local_N*i].data.ptr, 0, cls.y[index].data.ptr, i, cls.local_local_nbytes)
+            # print(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
+            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
         # return
         return cls.out
 

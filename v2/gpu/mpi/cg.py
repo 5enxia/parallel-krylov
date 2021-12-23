@@ -18,6 +18,7 @@ def cg(A, b, epsilon, T):
 
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
+
     MultiGpu.alloc(local_A, b, T)
     Ax = cp.empty(N, T)
     v = cp.empty(N, T)
@@ -30,7 +31,7 @@ def cg(A, b, epsilon, T):
 
     # 反復計算
     i = 0
-    start_time = start(method_name='CG + GPU')
+    start_time = start(method_name='cg + gpu + mpi')
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
