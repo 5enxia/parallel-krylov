@@ -38,7 +38,7 @@ def kskipmrr(A, b, epsilon, k, T):
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='k-skip MrR', k=k)
+        start_time = start(method_name='k-skip MrR + gpu + mpi', k=k)
     out = MultiGpu.dot(local_A, Ar[0])
     comm.Allgather(out, Ar[1])
     #comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
