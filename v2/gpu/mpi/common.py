@@ -141,14 +141,14 @@ class MultiGpu(object):
             Device(i).use()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
-            print(x, cls.x[index])
+            # print(x, cls.x[index])
             Device(i).synchronize()
         # dot
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
             cls.y[index] = cls.A[index].dot(cls.x[index])
-            print(cls.y[index])
+            # print(cls.y[index])
             Device(i).synchronize()
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
@@ -156,7 +156,7 @@ class MultiGpu(object):
             #cp.cuda.get_current_stream().synchronize()
             cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
             Device(i).synchronize()
-        print(cls.out)
+        # print(cls.out)
         return cls.out
 
 
