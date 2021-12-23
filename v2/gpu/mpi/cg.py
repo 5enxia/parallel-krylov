@@ -31,7 +31,10 @@ def cg(A, b, epsilon, T):
 
     # 反復計算
     i = 0
-    start_time = start(method_name='cg + gpu + mpi')
+
+    if rank == 0:
+        start_time = start(method_name='cg + gpu + mpi')
+
     while i < max_iter:
         # 収束判定
         residual[i] = norm(r) / b_norm
@@ -54,5 +57,6 @@ def cg(A, b, epsilon, T):
     else:
         isConverged = False
 
-    elapsed_time = finish(start_time, isConverged, i, residual[i])
+    if rank == 0:
+        elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
