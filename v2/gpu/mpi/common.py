@@ -83,6 +83,7 @@ class MultiGpu(object):
     # byte size
     nbytes: int = 0
     local_nbytes: int = 0
+    local_local_nbytes: int = 0
 
     # GPUの初期化
     @classmethod
@@ -143,9 +144,9 @@ class MultiGpu(object):
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
         # dot
-        for i in range(cls.end, cls.begin-1, -1):
-            Device(i).use()
-            index = i-cls.begin
+        # for i in range(cls.end, cls.begin-1, -1):
+        #     Device(i).use()
+        #     index = i-cls.begin
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):

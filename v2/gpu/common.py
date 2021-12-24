@@ -10,46 +10,26 @@ from ..common import _start, _finish
 
 # 計測開始
 def start(method_name: str = '', k: int = None) -> float:
-    """[summary]
-
-    Args:
-        method_name (str, optional): [description]. Defaults to ''.
-        k (int, optional): [description]. Defaults to None.
-
-    Returns:
-        float: [description]
-    """
     _start(method_name, k)
     return time.perf_counter()
 
 
 # 計測終了
 def finish(start_time: float, isConverged: bool, num_of_iter: int, final_residual: float, final_k: int = None) -> float:
-    """[summary]
-
-    Args:
-        start_time (float): [description]
-        isConverged (bool): [description]
-        num_of_iter (int): [description]
-        final_residual (float): [description]
-        final_k (int, optional): [description]. Defaults to None.
-
-    Returns:
-        float: [description]
-    """
     elapsed_time = time.perf_counter() - start_time
     _finish(elapsed_time, isConverged, num_of_iter, final_residual, final_k)
     return elapsed_time
+
 
 # パラメータの初期化
 def init(A, b, T, num_of_thread):
     # 追加する要素数を算出
     old_N = b.size
-    num_of_append: int = num_of_thread - (old_N % num_of_thread) # 足りない行を計算
+    num_of_append: int = num_of_thread - (old_N % num_of_thread)  # 足りない行を計算
     num_of_append = 0 if num_of_append == num_of_thread else num_of_append
     N: int = old_N + num_of_append
 
-    ## A
+    # A
     if num_of_append:
         # データをパディングする
         if isinstance(A, np.ndarray):
@@ -59,10 +39,10 @@ def init(A, b, T, num_of_thread):
         elif isinstance(A, scipy.sparse.csr.csr_matrix):
             from scipy.sparse import hstack, vstack, csr_matrix
             if num_of_append:
-                A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
-                A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
+                A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr')  # 右にemptyを追加
+                A = vstack([A, csr_matrix((num_of_append, N))], 'csr')  # 下にemptyを追加
 
-    ## b
+    # b
     b = cp.array(b, T)
     if num_of_append:
         b = cp.append(b, cp.zeros(num_of_append))  # 0を追加
@@ -111,8 +91,8 @@ class MultiGpu(object):
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
 
-    
     # メモリー領域を確保
+
     @classmethod
     def alloc(cls, A, b, T):
         # dimentional size
@@ -154,14 +134,15 @@ class MultiGpu(object):
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, 0, cls.nbytes)
         # dot
-        for i in range(cls.end, cls.begin-1, -1):
-            Device(i).use()
-            index = i-cls.begin 
+        # for i in range(cls.end, cls.begin-1, -1):
+        #     Device(i).use()
+        #     index = i-cls.begin
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).synchronize()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
+            cp.cuda.runtime.memcpyPeer(
+                cls.out[cls.local_N*i].data.ptr, 0, cls.y[i-cls.begin].data.ptr, i, cls.local_nbytes)
         # return
         return cls.out
