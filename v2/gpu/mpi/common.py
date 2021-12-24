@@ -169,6 +169,10 @@ class MultiGpu(object):
     def joint_mpi(cls, comm):
         cls.comm = comm
 
+    @classmethod
+    def sync(cls):
+        Device(cls.begin).synchronize()
+
 
 # mpi
 def init_mpi():

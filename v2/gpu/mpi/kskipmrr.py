@@ -24,6 +24,8 @@ def kskipmrr(A, b, epsilon, k, T):
     Ax = cp.empty(N, T)
     Ar = cp.empty((k + 2, N), T)
     Ay = cp.empty((k + 1, N), T)
+    rAr = np.zeros(1, T)
+    ArAr = np.zeros(1, T)
     alpha = cp.empty(2 * k + 3, T)
     beta = cp.empty(2 * k + 2, T)
     delta = cp.empty(2 * k + 1, T)
@@ -38,7 +40,12 @@ def kskipmrr(A, b, epsilon, k, T):
     if rank == 0:
         start_time = start(method_name='k-skip MrR + gpu + mpi', k=k)
     MultiGpu.dot(local_A, Ar[0], out=Ar[1])
-    zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
+    rAr = dot(Ar[0], Ar[1])
+    MultiGpu.sync()
+    ArAr = dot(Ar[1], Ar[1])
+    MultiGpu.sync()
+    zeta = rAr / ArAr
+    # zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
@@ -65,12 +72,15 @@ def kskipmrr(A, b, epsilon, k, T):
         for j in range(2 * k + 3):
             jj = j // 2
             alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
+            MultiGpu.sync()
         for j in range(1, 2 * k + 2):
             jj = j//2
             beta[j] = dot(Ay[jj], Ar[jj + j % 2])
+            MultiGpu.sync()
         for j in range(2 * k + 1):
             jj = j // 2
             delta[j] = dot(Ay[jj], Ay[jj + j % 2])
+            MultiGpu.sync()
 
         # MrRでの1反復(解の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
