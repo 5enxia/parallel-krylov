@@ -160,8 +160,10 @@ class MultiGpu(object):
             Device(i).synchronize()
 
         cls.comm.Allgather(cls.out, out)
+        cls.comm.Barrier()
     
     # joint comm
+    @classmethod
     def joint_mpi(cls, comm):
         cls.comm = comm
 
