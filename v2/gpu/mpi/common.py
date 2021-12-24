@@ -84,6 +84,8 @@ class MultiGpu(object):
     nbytes: int = 0
     local_nbytes: int = 0
     local_local_nbytes: int = 0
+    # mpi
+    comm = None
 
     # GPUの初期化
     @classmethod
@@ -137,7 +139,7 @@ class MultiGpu(object):
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
-    def dot(cls, A, x):
+    def dot(cls, A, x, out) -> None:
         # Copy vector data to All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
@@ -153,7 +155,15 @@ class MultiGpu(object):
             Device(i).synchronize()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
-        return cls.out
+
+        for i in range(cls.end, cls.begin-1, -1):
+            Device(i).synchronize()
+
+        cls.comm.Allgather(cls.out, out)
+    
+    # joint comm
+    def joint_mpi(cls, comm):
+        cls.comm = comm
 
 
 # mpi
@@ -162,6 +172,7 @@ def init_mpi():
     return comm, comm.Get_rank(), comm.Get_size()
 
 
+# gpu
 def calc_alloc_gpu(rank: int, num_of_process: int) -> tuple:
     # local
     if num_of_process == 2:
