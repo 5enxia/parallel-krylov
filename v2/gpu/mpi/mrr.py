@@ -15,6 +15,7 @@ def mrr(A, b, epsilon, T):
     # GPU初期化
     begin, end = calc_alloc_gpu(rank, num_of_process)
     MultiGpu.init_gpu(begin, end, num_of_process)
+    MultiGpu.joint_mpi(comm)
 
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
@@ -24,7 +25,8 @@ def mrr(A, b, epsilon, T):
     Ar = cp.empty(N, T)
 
     # 初期残差
-    comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    # comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    MultiGpu.dot(local_A, x, out=Ax)
     r = b - Ax
     residual[0] = norm(r) / b_norm
 
@@ -32,7 +34,8 @@ def mrr(A, b, epsilon, T):
     i = 0
     if rank == 0:
         start_time = start(method_name='MrR + gpu + mpi')
-    comm.Allgather(MultiGpu.dot(local_A, r), Ar)
+    # comm.Allgather(MultiGpu.dot(local_A, r), Ar)
+    MultiGpu.dot(local_A, r, out=Ar)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar
     z = -zeta * r
@@ -50,7 +53,8 @@ def mrr(A, b, epsilon, T):
             break
 
         # 解の更新
-        comm.Allgather(MultiGpu.dot(local_A, r), Ar)
+        # comm.Allgather(MultiGpu.dot(local_A, r), Ar)
+        MultiGpu.dot(local_A, r, out=Ar)
         mu = dot(y, y)
         nu = dot(y, Ar)
         gamma = nu / mu

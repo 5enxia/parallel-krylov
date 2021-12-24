@@ -14,44 +14,38 @@ def kskipmrr(A, b, epsilon, k, T):
     # GPU初期化
     begin, end = calc_alloc_gpu(rank, num_of_process)
     MultiGpu.init_gpu(begin, end, num_of_process)
+    MultiGpu.joint_mpi(comm)
 
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
     local_N = N // num_of_process
+
     MultiGpu.alloc(A, b, T)
     Ax = cp.empty(N, T)
-
     Ar = cp.empty((k + 2, N), T)
     Ay = cp.empty((k + 1, N), T)
-    rAr = cp.zeros(1, T)
-    ArAr = cp.zeros(1, T)
     alpha = cp.empty(2 * k + 3, T)
     beta = cp.empty(2 * k + 2, T)
     delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差
-    comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    MultiGpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='k-skip MrR + gpu + mpi', k=k)
-    
-    comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
-    rAr = dot(Ar[0], Ar[1])
-    ArAr = dot(Ar[1], Ar[1])
-
-    zeta = rAr / ArAr
+    MultiGpu.dot(local_A, Ar[0], out=Ar[1])
+    zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
-
+    num_of_solution_updates[1] = 1
     i = 1
     index = 1
-    num_of_solution_updates[1] = 1
 
     # 反復計算
     while i < max_iter:
@@ -63,9 +57,9 @@ def kskipmrr(A, b, epsilon, k, T):
 
         # 基底計算
         for j in range(1, k + 2):
-            comm.Allgather(MultiGpu.dot(local_A, Ar[j-1]), Ar[j])
+            MultiGpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 1):
-            comm.Allgather(MultiGpu.dot(local_A, Ay[j-1]), Ay[j])
+            MultiGpu.dot(local_A, Ay[j-1], out=Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -85,7 +79,7 @@ def kskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
+        MultiGpu.dot(local_A, Ar[0], out=Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -109,7 +103,7 @@ def kskipmrr(A, b, epsilon, k, T):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
+            MultiGpu.dot(local_A, Ar[0], out=Ar[1])
             x -= z
 
         i += (k + 1)
