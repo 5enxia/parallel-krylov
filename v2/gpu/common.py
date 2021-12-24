@@ -142,6 +142,6 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).synchronize()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.local_nbytes)
+            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
         # return
         return cls.out
