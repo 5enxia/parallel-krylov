@@ -53,10 +53,10 @@ def kskipmrr(A, b, epsilon, k, T):
             break
 
         # 基底計算
-        for j in range(1, k + 1):
+        for j in range(1, k + 2):
             comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
+        for j in range(1, k + 1):
             comm.Allgather(local_A.dot(Ay[j-1]), Ay[j])
-        comm.Allgather(local_A.dot(Ar[k]), Ar[k+1])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -76,6 +76,7 @@ def kskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
+        comm.Allgather(local_A.dot(Ar[0]), Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -97,10 +98,10 @@ def kskipmrr(A, b, epsilon, k, T):
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
+            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
             x -= z
 
         i += (k + 1)
