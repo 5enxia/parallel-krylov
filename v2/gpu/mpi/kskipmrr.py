@@ -18,38 +18,40 @@ def kskipmrr(A, b, epsilon, k, T):
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
     local_N = N // num_of_process
-
     MultiGpu.alloc(A, b, T)
-    out = cp.empty(local_N, T)
     Ax = cp.empty(N, T)
+
     Ar = cp.empty((k + 2, N), T)
     Ay = cp.empty((k + 1, N), T)
+    rAr = cp.zeros(1, T)
+    ArAr = cp.zeros(1, T)
     alpha = cp.empty(2 * k + 3, T)
     beta = cp.empty(2 * k + 2, T)
     delta = cp.empty(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差
-    out = MultiGpu.dot(local_A, x)
-    comm.Allgather(out, Ax)
-    #comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    comm.Allgather(MultiGpu.dot(local_A, x), Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='k-skip MrR + gpu + mpi', k=k)
-    out = MultiGpu.dot(local_A, Ar[0])
-    comm.Allgather(out, Ar[1])
-    #comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
-    zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
+    
+    comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
+    rAr = dot(Ar[0], Ar[1])
+    ArAr = dot(Ar[1], Ar[1])
+
+    zeta = rAr / ArAr
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
     x -= z
-    num_of_solution_updates[1] = 1
+
     i = 1
     index = 1
+    num_of_solution_updates[1] = 1
 
     # 反復計算
     while i < max_iter:
@@ -61,13 +63,9 @@ def kskipmrr(A, b, epsilon, k, T):
 
         # 基底計算
         for j in range(1, k + 2):
-            out = MultiGpu.dot(local_A, Ar[j-1])
-            comm.Allgather(out, Ar[j])
-            #comm.Allgather(MultiGpu.dot(local_A, Ar[j-1]), Ar[j])
+            comm.Allgather(MultiGpu.dot(local_A, Ar[j-1]), Ar[j])
         for j in range(1, k + 1):
-            out = MultiGpu.dot(local_A, Ay[j-1])
-            comm.Allgather(out, Ay[j])
-            #comm.Allgather(MultiGpu.dot(local_A, Ay[j-1]), Ay[j])
+            comm.Allgather(MultiGpu.dot(local_A, Ay[j-1]), Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -87,9 +85,7 @@ def kskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        out = MultiGpu.dot(local_A, Ar[0])
-        comm.Allgather(out, Ar[1])
-        #comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
+        comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -113,9 +109,7 @@ def kskipmrr(A, b, epsilon, k, T):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            out = MultiGpu.dot(local_A, Ar[0])
-            comm.Allgather(out, Ar[1])
-            #comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
+            comm.Allgather(MultiGpu.dot(local_A, Ar[0]), Ar[1])
             x -= z
 
         i += (k + 1)
