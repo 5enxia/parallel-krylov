@@ -20,7 +20,7 @@ def kskipmrr(A, b, epsilon, k, T):
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
     local_N = N // num_of_process
 
-    MultiGpu.alloc(A, b, T)
+    MultiGpu.alloc(local_A, b, T)
     Ax = cp.zeros(N, T)
     Ar = cp.zeros((k + 2, N), T)
     Ay = cp.zeros((k + 1, N), T)
