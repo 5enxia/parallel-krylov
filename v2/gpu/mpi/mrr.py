@@ -25,8 +25,7 @@ def mrr(A, b, epsilon, T):
     Ar = cp.zeros(N, T)
 
     # 初期残差
-    # comm.Allgather(MultiGpu.dot(local_A, x), Ax)
-    MultiGpu.dot(local_A, x, out=Ax)
+    Ax = MultiGpu.dot(local_A, x, out=Ax)
     r = b - Ax
     residual[0] = norm(r) / b_norm
 
@@ -34,8 +33,7 @@ def mrr(A, b, epsilon, T):
     i = 0
     if rank == 0:
         start_time = start(method_name='MrR + gpu + mpi')
-    # comm.Allgather(MultiGpu.dot(local_A, r), Ar)
-    MultiGpu.dot(local_A, r, out=Ar)
+    Ar = MultiGpu.dot(local_A, r, out=Ar)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar
     z = -zeta * r
@@ -53,8 +51,7 @@ def mrr(A, b, epsilon, T):
             break
 
         # 解の更新
-        # comm.Allgather(MultiGpu.dot(local_A, r), Ar)
-        MultiGpu.dot(local_A, r, out=Ar)
+        Ar = MultiGpu.dot(local_A, r, out=Ar)
         mu = dot(y, y)
         nu = dot(y, Ar)
         gamma = nu / mu
