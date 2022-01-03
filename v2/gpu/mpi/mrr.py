@@ -35,6 +35,7 @@ def mrr(A, b, epsilon, T):
         start_time = start(method_name='MrR + gpu + mpi')
     Ar = MultiGpu.dot(local_A, r, out=Ar)
     zeta = dot(r, Ar) / dot(Ar, Ar)
+    MultiGpu.sync()
     y = zeta * Ar
     z = -zeta * r
     r -= y
@@ -54,6 +55,7 @@ def mrr(A, b, epsilon, T):
         Ar = MultiGpu.dot(local_A, r, out=Ar)
         mu = dot(y, y)
         nu = dot(y, Ar)
+        MultiGpu.sync()
         gamma = nu / mu
         s = Ar - gamma * y
         rs = dot(r, s)

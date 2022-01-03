@@ -140,33 +140,21 @@ class MultiGpu(object):
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
-    def dot(cls, A, x, out) -> None:
+    def dot(cls, local_A, x, out):
         # Copy vector data to All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
-        # dot
-        # for i in range(cls.end, cls.begin-1, -1):
-        #     Device(i).use()
-        #     index = i-cls.begin
+            # dot
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).synchronize()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
-        
-
-        for i in range(cls.end, cls.begin-1, -1):
-            Device(i).use()
-            Device(i).synchronize()
-
-        rank = cls.comm.Get_rank()
-        if rank == 0:
-            print(cls.out)
-
         cls.comm.Allgather(cls.out, out)
+        # return
         return out
     
     # joint comm

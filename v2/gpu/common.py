@@ -52,9 +52,9 @@ def init(A, b, T, num_of_thread):
     x = cp.zeros(N, T)
 
     # その他パラメータ
-    max_iter = old_N * 2
-    residual = cp.zeros(max_iter+1, T)
-    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
+    max_iter = old_N
+    residual = cp.zeros(max_iter+16, T)
+    num_of_solution_updates = cp.zeros(max_iter+16, np.int)
     num_of_solution_updates[0] = 0
 
     return A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
@@ -133,10 +133,7 @@ class MultiGpu(object):
             Device(i).use()
             index = i-cls.begin
             cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
-        # dot
-        # for i in range(cls.end, cls.begin-1, -1):
-        #     Device(i).use()
-        #     index = i-cls.begin
+            # dot
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
