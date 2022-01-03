@@ -124,7 +124,7 @@ def kskipmrr(A, b, epsilon, k, T):
         residual[index] = norm(Ar[0]) / b_norm
 
     if rank == 0:
-        elapsed_time = finish(start_time, isConverged, i, residual[i])
-        return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
+        elapsed_time = finish(start_time, isConverged, i, residual[index])
+        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
     else:
         exit(0)
