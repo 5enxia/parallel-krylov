@@ -24,7 +24,7 @@ def kskipmrr(A, b, epsilon, k, T):
     residual[0] = norm(Ar[0]) / b_norm
 
     # 初期反復
-    start_time = start(method_name='k-skip MrR', k=k)
+    start_time = start(method_name='k-skip MrR + gpu', k=k)
     Ar[1] = MultiGpu.dot(A, Ar[0])
     zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]
