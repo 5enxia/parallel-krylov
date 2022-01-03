@@ -10,7 +10,7 @@ def kskipcg(A, b, epsilon, k, T):
 
     # 共通初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
-    Ax = np.zeors(N, T)
+    Ax = np.zeros(N, T)
 
     # root
     Ar = np.zeros((k + 2, N), T)

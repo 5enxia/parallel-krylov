@@ -21,14 +21,14 @@ def kskipmrr(A, b, epsilon, k, T):
     local_N = N // num_of_process
 
     MultiGpu.alloc(A, b, T)
-    Ax = cp.zeors(N, T)
-    Ar = cp.zeors((k + 2, N), T)
-    Ay = cp.zeors((k + 1, N), T)
+    Ax = cp.zeros(N, T)
+    Ar = cp.zeros((k + 2, N), T)
+    Ay = cp.zeros((k + 1, N), T)
     rAr = cp.zeros(1, T)
     ArAr = cp.zeros(1, T)
-    alpha = cp.zeors(2 * k + 3, T)
-    beta = cp.zeors(2 * k + 2, T)
-    delta = cp.zeors(2 * k + 1, T)
+    alpha = cp.zeros(2 * k + 3, T)
+    beta = cp.zeros(2 * k + 2, T)
+    delta = cp.zeros(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差

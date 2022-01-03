@@ -10,7 +10,7 @@ def kskipmrr(A, b, epsilon, k, T):
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
-    Ax = np.zeors(N, T)
+    Ax = np.zeros(N, T)
 
     # 初期化
     Ar = np.zeros((k + 2, N), T)

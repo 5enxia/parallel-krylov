@@ -119,11 +119,11 @@ class MultiGpu(object):
             elif isinstance(A, scipy.sparse.csr.csr_matrix):
                 from cupyx.scipy.sparse import csr_matrix
                 cls.A[index] = csr_matrix(A[i*cls.local_N:(i+1)*cls.local_N])
-            cls.x[index] = cp.zeors(cls.N, T)
-            cls.y[index] = cp.zeors(cls.local_N, T)
+            cls.x[index] = cp.zeros(cls.N, T)
+            cls.y[index] = cp.zeros(cls.local_N, T)
 
         # init out vector
-        cls.out = cp.zeors(cls.N, T)
+        cls.out = cp.zeros(cls.N, T)
 
     # マルチGPUを用いた行列ベクトル積
     @classmethod
