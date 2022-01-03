@@ -56,9 +56,10 @@ def init(A, b, T, rank, num_of_process, num_of_all_of_gpu = 16) -> tuple:
     x = cp.zeros(N, T)
 
     # その他パラメータ
-    max_iter = old_N * 2
-    residual = cp.zeros(max_iter+1, T)
-    num_of_solution_updates = cp.zeros(max_iter+1, np.int)
+    # max_iter = old_N * 2
+    max_iter = old_N
+    residual = cp.zeros(max_iter+16, T)
+    num_of_solution_updates = cp.zeros(max_iter+16, np.int)
     num_of_solution_updates[0] = 0
 
     return local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
