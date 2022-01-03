@@ -10,11 +10,11 @@ def kskipmrr(A, b, epsilon, k, T):
         A, b, T)
 
     # 初期化
-    Ar = np.empty((k + 2, N), T)
-    Ay = np.empty((k + 1, N), T)
-    alpha = np.empty(2 * k + 3, T)
-    beta = np.empty(2 * k + 2, T)
-    delta = np.empty(2 * k + 1, T)
+    Ar = np.zeors((k + 2, N), T)
+    Ay = np.zeors((k + 1, N), T)
+    alpha = np.zeors(2 * k + 3, T)
+    beta = np.zeors(2 * k + 2, T)
+    delta = np.zeors(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差

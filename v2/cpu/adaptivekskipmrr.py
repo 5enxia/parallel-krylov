@@ -9,11 +9,11 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
 
     # 初期化
-    Ar = np.empty((k+3, N), T)
-    Ay = np.empty((k + 2, N), T)
-    alpha = np.empty(2 * k + 3, T)
-    beta = np.empty(2 * k + 2, T)
-    delta = np.empty(2 * k + 1, T)
+    Ar = np.zeors((k+3, N), T)
+    Ay = np.zeors((k + 2, N), T)
+    alpha = np.zeors(2 * k + 3, T)
+    beta = np.zeors(2 * k + 2, T)
+    delta = np.zeors(2 * k + 1, T)
     beta[0] = 0
     k_history = np.zeros(N+1, np.int)
     k_history[0] = k

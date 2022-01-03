@@ -9,11 +9,11 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     # 共通初期化
     comm, rank, num_of_process = init_mpi()
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
-    Ax = np.empty(N, T)
+    Ax = np.zeors(N, T)
 
     # 初期化
-    Ar = np.empty((k + 2, N), T)
-    Ay = np.empty((k + 1, N), T)
+    Ar = np.zeors((k + 2, N), T)
+    Ay = np.zeors((k + 1, N), T)
     rAr = np.zeros(1, T)
     ArAr = np.zeros(1, T)
     alpha = np.zeros(2*k + 3, T)

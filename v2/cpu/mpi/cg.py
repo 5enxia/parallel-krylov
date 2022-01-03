@@ -12,8 +12,8 @@ def cg(A, b, epsilon, T):
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
 
     # 初期化
-    Ax = np.empty(N, T)
-    v = np.empty(N, T)
+    Ax = np.zeors(N, T)
+    v = np.zeors(N, T)
 
     # 初期残差
     comm.Allgather(local_A.dot(x), Ax)

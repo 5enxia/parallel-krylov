@@ -12,11 +12,11 @@ def kskipmrr(A, b, epsilon, k, T):
     MultiGpu.alloc(A, b, T)
 
     # 初期化
-    Ar = cp.empty((k + 2, N), T)
-    Ay = cp.empty((k + 1, N), T)
-    alpha = cp.empty(2 * k + 3, T)
-    beta = cp.empty(2 * k + 2, T)
-    delta = cp.empty(2 * k + 1, T)
+    Ar = cp.zeors((k + 2, N), T)
+    Ay = cp.zeors((k + 1, N), T)
+    alpha = cp.zeors(2 * k + 3, T)
+    beta = cp.zeors(2 * k + 2, T)
+    delta = cp.zeors(2 * k + 1, T)
     beta[0] = 0
 
     # 初期残差

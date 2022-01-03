@@ -13,13 +13,13 @@ def mrr(A, b, epsilon, T):
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
 
     # 初期化
-    Ax = np.empty(N, T)
-    Ar = np.empty(N, T)
-    s = np.empty(N, T)
-    rs = np.empty(1, T)
-    ss = np.empty(1, T)
-    nu = np.empty(1, T)
-    mu = np.empty(1, T)
+    Ax = np.zeors(N, T)
+    Ar = np.zeors(N, T)
+    s = np.zeors(N, T)
+    rs = np.zeors(1, T)
+    ss = np.zeors(1, T)
+    nu = np.zeors(1, T)
+    mu = np.zeors(1, T)
 
     # 初期残差
     comm.Allgather(local_A.dot(x), Ax)

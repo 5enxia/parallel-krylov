@@ -20,8 +20,8 @@ def cg(A, b, epsilon, T):
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
 
     MultiGpu.alloc(local_A, b, T)
-    Ax = cp.empty(N, T)
-    v = cp.empty(N, T)
+    Ax = cp.zeors(N, T)
+    v = cp.zeors(N, T)
 
     # 初期残差
     comm.Allgather(MultiGpu.dot(local_A, x), Ax)
