@@ -20,7 +20,7 @@ def mrr(A, b, epsilon, T):
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
 
-    MultiGpu.alloc(A, b, T)
+    MultiGpu.alloc(local_A, b, T)
     Ax = cp.zeros(N, T)
     Ar = cp.zeros(N, T)
 
