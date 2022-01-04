@@ -124,7 +124,8 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
-            begin, end = i*cls.local_local_N, (i+1)*cls.local_local_N
+            # local_Aは1/8
+            begin, end = index*cls.local_local_N, (index+1)*cls.local_local_N
             # npy
             if isinstance(local_A, np.ndarray):
                 cls.A[index] = cp.array(local_A[begin:end], T)

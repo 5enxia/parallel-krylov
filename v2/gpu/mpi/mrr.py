@@ -55,12 +55,10 @@ def mrr(A, b, epsilon, T):
         Ar = MultiGpu.dot(local_A, r, out=Ar)
         mu = dot(y, y)
         nu = dot(y, Ar)
-        MultiGpu.sync()
         gamma = nu / mu
         s = Ar - gamma * y
         rs = dot(r, s)
         ss = dot(s, s)
-        MultiGpu.sync()
         zeta = rs / ss
         eta = -zeta * gamma
         y = eta * y + zeta * Ar
