@@ -47,9 +47,9 @@ def init(A, b, T, rank, num_of_process, num_of_all_of_gpu = 16) -> tuple:
     local_A = A[begin:end]
 
     ## b
-    b = cp.array(b, T)
     if num_of_append:
-        b = cp.append(b, cp.zeros(num_of_append))  # 0を追加
+        b = np.append(b, np.zeros(num_of_append))  # 0を追加
+    b = cp.array(b, T)
     b_norm = cp.linalg.norm(b)
 
     # x
