@@ -91,6 +91,10 @@ class MultiGpu(object):
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
 
+        for i in range(0, 4):
+            for j in range(0, 4):
+                cp.cuda.runtime.deviceCanAccessPeer(i, j)
+
     # メモリー領域を確保
 
     @classmethod
