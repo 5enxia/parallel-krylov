@@ -11,11 +11,14 @@ b = cp.arange(N, dtype=T)
 y_list = [None] * 4
 
 for i in range(4):
+	ls = [j for j in range(4)]
+	ls.remove(i)
 	Device(i).use()
 	pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
 	cp.cuda.set_allocator(pool.malloc)
 
-	cp.cuda.runtime.deviceEnablePeerAccess(i)
+	for k in ls:
+		cp.cuda.runtime.deviceEnablePeerAccess(k)
 
 	A_list[i] = cp.ones(shape, T)
 	# b_list[i] = cp.arange(N*i, N*(i+1), dtype=T)
