@@ -16,7 +16,7 @@
 #PJM -L "vnode-core=36"
 
 # elapsed-time limit
-#PJM -L "elapse=3:00"
+#PJM -L "elapse=10:00"
 
 # Output standard error to the same file that standard output
 #PJM -j
@@ -41,9 +41,9 @@ module load python/3.6.2
 
 ## openmpi
 #module load openmpi/3.1.3-nocuda-intel18.3
-module load openmpi/3.1.3-cuda9.1-intel18.3
+# module load openmpi/3.1.3-cuda9.1-intel18.3
 
-#module load cuda/10.1
+module load cuda/10.1
 #-----------------------------------------------------
 
 
