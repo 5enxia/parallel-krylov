@@ -61,6 +61,9 @@ module list
 
 # run
 # -----------------------------------------------------
+# nvidia-smi topo -m
+# export CUDA_VISIBLE_DEVICES="0,1"
 python3 test.py
+# python3 test.2.py
 # -----------------------------------------------------
 
