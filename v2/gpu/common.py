@@ -77,6 +77,8 @@ class MultiGpu(object):
     # byte size
     nbytes: int = 0
     local_nbytes: int = 0
+    # gpu stream
+    streams = None
 
     # GPUの初期化
     @classmethod
@@ -84,19 +86,22 @@ class MultiGpu(object):
         cls.begin = begin
         cls.end = end
         cls.num_of_gpu = end - begin + 1
+        cls.streams = [None] * cls.num_of_gpu
 
         # init memory allocator
         for i in range(end, begin-1, -1):
             Device(i).use()
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
+            cls.streams[i-begin] = cp.cuda.Stream()
 
-        for i in range(0, 4):
-            for j in range(0, 4):
-                cp.cuda.runtime.deviceCanAccessPeer(i, j)
+            # Enable P2P
+            for j in range(4):
+                if i == j:
+                    continue
+                cp.cuda.runtime.deviceEnablePeerAccess(j)
 
     # メモリー領域を確保
-
     @classmethod
     def alloc(cls, A, b, T):
         # dimentional size
@@ -136,13 +141,19 @@ class MultiGpu(object):
         for i in range(cls.end, cls.begin-1, -1):
             Device(i).use()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
+            # cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
+            cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes, cls.streams[index].ptr)
             # dot
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.end, cls.begin-1, -1):
-            Device(i).synchronize()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
+            # cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
+            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes, cls.streams[index].ptr)
+        # sync
+        for i in range(cls.end, cls.begin-1, -1):
+            index = i-cls.begin
+            cls.streams[index].synchronize()
+            # Device(i).synchronize()
         # return
         return cls.out
