@@ -87,6 +87,8 @@ class MultiGpu(object):
     local_local_nbytes: int = 0
     # mpi
     comm = None
+    # gpu stream
+    streams = None
 
     # GPUの初期化
     @classmethod
@@ -98,7 +100,7 @@ class MultiGpu(object):
         cls.streams = [None] * cls.num_of_gpu
 
         # init memory allocator
-        for i in range(end, begin-1, -1):
+        for i in range(cls.begin, cls.end+1):
             Device(i).use()
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
@@ -128,7 +130,7 @@ class MultiGpu(object):
 
         # divide single A -> multi local_A
         # allocate x, y
-        for i in range(cls.end, cls.begin-1, -1):
+        for i in range(cls.begin, cls.end+1):
             Device(i).use()
             index = i-cls.begin
             # local_Aは1/8
@@ -149,27 +151,28 @@ class MultiGpu(object):
     # マルチGPUを用いた行列ベクトル積
     @classmethod
     def dot(cls, local_A, x, out):
+        # cls.comm.Bcast(x)
         # Copy vector data to All devices
-        for i in range(cls.end, cls.begin-1, -1):
+        for i in range(cls.begin, cls.end+1):
             Device(i).use()
             index = i-cls.begin
-            # cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes)
-            cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.begin, cls.nbytes, cls.streams[index].ptr)
+            # cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes)
+            cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[index].ptr)
             # dot
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
-        for i in range(cls.end, cls.begin-1, -1):
-            # Device(i).synchronize()
+        for i in range(cls.begin, cls.end+1):
+            Device(i).synchronize()
             index = i-cls.begin
-            # cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes)
-            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.begin, cls.y[index].data.ptr, i, cls.y[index].nbytes, cls.streams[index].ptr)
+            # cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes)
+            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes, cls.streams[index].ptr)
 
         # sync
-        for i in range(cls.end, cls.begin-1, -1):
+        for i in range(cls.begin, cls.end+1):
             index = i-cls.begin
             cls.streams[index].synchronize()
-            Device(i).synchronize()
-            
+            # Device(i).synchronize()
+
         cls.comm.Allgather(cls.out, out)
         # return
         return out
@@ -181,7 +184,8 @@ class MultiGpu(object):
 
     @classmethod
     def sync(cls):
-        Device(cls.begin).synchronize()
+        Device(cls.end).synchronize()
+        cls.comm.Barrier()
 
 
 # mpi
@@ -201,11 +205,11 @@ def calc_alloc_gpu(rank: int, num_of_process: int) -> tuple:
     elif num_of_process == 8:
         # odd
         if rank % 2 == 0:
-            return 0, 1
-        else:
             return 2, 3
+        else:
+            return 0, 1
     elif num_of_process == 16:
-        _id = rank % 4
+        _id = 3 - rank % 4
         return _id, _id 
     else:
         return 0, 0
