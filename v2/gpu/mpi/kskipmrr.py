@@ -18,14 +18,12 @@ def kskipmrr(A, b, epsilon, k, T):
 
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
-    local_N = N // num_of_process
-
     MultiGpu.alloc(local_A, b, T)
+
     Ax = cp.zeros(N, T)
     Ar = cp.zeros((k + 2, N), T)
+
     Ay = cp.zeros((k + 1, N), T)
-    rAr = cp.zeros(1, T)
-    ArAr = cp.zeros(1, T)
     alpha = cp.zeros(2 * k + 3, T)
     beta = cp.zeros(2 * k + 2, T)
     delta = cp.zeros(2 * k + 1, T)
@@ -40,12 +38,7 @@ def kskipmrr(A, b, epsilon, k, T):
     if rank == 0:
         start_time = start(method_name='k-skip MrR + gpu + mpi', k=k)
     MultiGpu.dot(local_A, Ar[0], out=Ar[1])
-    rAr = dot(Ar[0], Ar[1])
-    #MultiGpu.sync()
-    ArAr = dot(Ar[1], Ar[1])
-    #MultiGpu.sync()
-    zeta = rAr / ArAr
-    # zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
+    zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]
     z = -zeta * Ar[0]
     Ar[0] -= Ay[0]
@@ -72,15 +65,12 @@ def kskipmrr(A, b, epsilon, k, T):
         for j in range(2 * k + 3):
             jj = j // 2
             alpha[j] = dot(Ar[jj], Ar[jj + j % 2])
-            #MultiGpu.sync()
         for j in range(1, 2 * k + 2):
             jj = j//2
             beta[j] = dot(Ay[jj], Ar[jj + j % 2])
-            #MultiGpu.sync()
         for j in range(2 * k + 1):
             jj = j // 2
             delta[j] = dot(Ay[jj], Ay[jj + j % 2])
-            #MultiGpu.sync()
 
         # MrRでの1反復(解の更新)
         d = alpha[2] * delta[0] - beta[1] ** 2
