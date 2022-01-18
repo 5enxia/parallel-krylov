@@ -23,7 +23,8 @@ def _start(method_name: str = '', k: int = None) -> None:
         method_name (str, optional): [description]. Defaults to ''.
         k (int, optional): [description]. Defaults to None.
     """
-    print(Color.GREEN, '# ', '='*16, ' INFO ', '='*16, ' #', Color.END, sep='')
+    # print(Color.GREEN, '# ', '='*16, ' INFO ', '='*16, ' #', Color.END, sep='')
+    print('# ', '='*16, ' INFO ', '='*16, ' #', sep='')
     print(f'Method:\t\t{ method_name }')
     if k != None:
         print(f'Initial_k:\t{ k }')
@@ -52,4 +53,5 @@ def _finish(
     print(f'Final_Residual:\t{ final_residual }')
     if final_k:
         print(f'Final_k:\t{final_k}')
-    print(Color.GREEN, '# ', '='*38, ' #', Color.END, sep='')
+    # print(Color.GREEN, '# ', '='*38, ' #', Color.END, sep='')
+    print('# ', '='*38, ' #', sep='')
