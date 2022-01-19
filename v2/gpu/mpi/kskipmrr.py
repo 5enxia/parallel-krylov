@@ -19,15 +19,12 @@ def kskipmrr(A, b, epsilon, k, T):
     # 初期化
     local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
     MultiGpu.alloc(local_A, b, T)
-
     Ax = cp.zeros(N, T)
     Ar = cp.zeros((k + 2, N), T)
-
     Ay = cp.zeros((k + 1, N), T)
     alpha = cp.zeros(2 * k + 3, T)
     beta = cp.zeros(2 * k + 2, T)
     delta = cp.zeros(2 * k + 1, T)
-    beta[0] = 0
 
     # 初期残差
     MultiGpu.dot(local_A, x, out=Ax)
