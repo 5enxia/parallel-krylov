@@ -44,7 +44,7 @@ def init(A: np.ndarray, b: np.ndarray, T) -> tuple:
     x = np.zeros(b.size, T) # 初期解
     b_norm = np.linalg.norm(b)
     N = b.size
-    max_iter = N * 2
+    max_iter = N
     residual = np.zeros(max_iter+1, T)
     num_of_solution_updates = np.zeros(max_iter+1, np.int)
     num_of_solution_updates[0] = 0
