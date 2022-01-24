@@ -1,12 +1,15 @@
+from matplotlib.cbook import maxdict
+from numpy import float64
 from numpy import dot
 from numpy.linalg import norm
 
 from .common import start, finish, init
 
 
-def cg(A, b, epsilon, T):
+def cg(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
     # 初期化
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+    T = float64
+    b_norm, N, maxiter, residual, num_of_solution_updates = init(b, maxiter)
 
     # 初期残差
     r = b - A.dot(x)
@@ -16,10 +19,10 @@ def cg(A, b, epsilon, T):
     # 反復計算
     i = 0
     start_time = start(method_name='CG')
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        if residual[i] < epsilon:
+        if residual[i] < tol:
             isConverged = True
             break
 
