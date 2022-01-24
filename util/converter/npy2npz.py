@@ -1,5 +1,5 @@
 import argparse
-import numpy as np
+from numpy import load as load_npy
 from scipy.sparse import save_npz, bsr_matrix, csc_matrix, csr_matrix, coo_matrix, dia_matrix, dok_matrix, lil_matrix
 
 methods = {
@@ -19,7 +19,7 @@ parser.add_argument("-f", "--format", default="coo",
 
 args = parser.parse_args()
 
-npy = np.load(args.path)
+npy = load_npy(args.path)
 method = methods[args.format]
 npz = method(npy)
 
