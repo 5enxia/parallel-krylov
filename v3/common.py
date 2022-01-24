@@ -1,21 +1,4 @@
 # 標準出力
-
-class Color:
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    PURPLE = '\033[35m'
-    CYAN = '\033[36m'
-    WHITE = '\033[37m'
-    END = '\033[0m'
-    BOLD = '\038[1m'
-    UNDERLINE = '\033[4m'
-    INVISIBLE = '\033[08m'
-    REVERCE = '\033[07m'
-
-
 def _start(method_name: str = '', k: int = None) -> None:
     """[summary]
 
@@ -23,7 +6,6 @@ def _start(method_name: str = '', k: int = None) -> None:
         method_name (str, optional): [description]. Defaults to ''.
         k (int, optional): [description]. Defaults to None.
     """
-    # print(Color.GREEN, '# ', '='*16, ' INFO ', '='*16, ' #', Color.END, sep='')
     print('# ', '='*16, ' INFO ', '='*16, ' #', sep='')
     print(f'Method:\t\t{ method_name }')
     if k != None:
@@ -53,5 +35,4 @@ def _finish(
     print(f'Final_Residual:\t{ final_residual }')
     if final_k:
         print(f'Final_k:\t{final_k}')
-    # print(Color.GREEN, '# ', '='*38, ' #', Color.END, sep='')
     print('# ', '='*38, ' #', sep='')
