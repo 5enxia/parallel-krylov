@@ -1,18 +1,21 @@
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
+from .common import start, finish, init, MultiCpu
 
-from .common import start, finish, init, init_mpi 
 
-
-def kskipmrr(A, b, epsilon, k, T):
-    # 共通初期化
-    comm, rank, num_of_process = init_mpi()
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
-    Ax = np.zeros(N, T)
+def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
+        b, x, maxiter)
+    Ax = np.zeros(N, T)
+    MultiCpu.alloc(local_A, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
     rAr = np.zeros(1, T)
@@ -22,7 +25,7 @@ def kskipmrr(A, b, epsilon, k, T):
     delta = np.zeros(2*k + 1, T)
 
     # 初期残差
-    comm.Allgather(local_A.dot(x), Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -30,7 +33,7 @@ def kskipmrr(A, b, epsilon, k, T):
     if rank == 0:
         start_time = start(method_name='k-skip MrR + MPI', k=k)
 
-    comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+    MultiCpu.dot(local_A, Ar[0], out=Ar[1])
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
 
@@ -45,18 +48,18 @@ def kskipmrr(A, b, epsilon, k, T):
     num_of_solution_updates[1] = 1
 
     # 反復計算
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
-        isConverged = residual[index] < epsilon
-        if isConverged:
+        if residual[index] < tol:
+            isConverged = True
             break
 
         # 基底計算
         for j in range(1, k + 2):
-            comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 1):
-            comm.Allgather(local_A.dot(Ay[j-1]), Ay[j])
+            MultiCpu.dot(local_A, Ay[j-1], out=Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -76,7 +79,7 @@ def kskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+        MultiCpu.dot(local_A, Ar[0], out=Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -101,7 +104,7 @@ def kskipmrr(A, b, epsilon, k, T):
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             x -= z
 
         i += (k + 1)
