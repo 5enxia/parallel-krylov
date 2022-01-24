@@ -6,8 +6,7 @@ from .common import start, finish, init
 
 def cg(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
     # 初期化
-    T = float64
-    b_norm, N, maxiter, residual, num_of_solution_updates = init(b, maxiter)
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
 
     # 初期残差
     r = b - A.dot(x)

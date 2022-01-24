@@ -19,12 +19,18 @@ def finish(start_time: float, isConverged: bool, num_of_iter: int, final_residua
 
 
 # パラメータの初期化
-def init(b, maxiter=None) -> tuple:
+def init(b, x=None, maxiter=None) -> tuple:
+    T = np.float64
     b_norm = np.linalg.norm(b)
     N = b.size
+    if isinstance(x, np.ndarray):
+        pass
+    else:
+        x = np.zeros(N, dtype=T)
+
     if maxiter == None:
         maxiter = N
-    residual = np.zeros(maxiter+1, np.float64)
+    residual = np.zeros(maxiter+1, T)
     num_of_solution_updates = np.zeros(maxiter+1, np.int)
 
-    return b_norm, N, maxiter, residual, num_of_solution_updates
+    return x, maxiter, b_norm, N, residual, num_of_solution_updates
