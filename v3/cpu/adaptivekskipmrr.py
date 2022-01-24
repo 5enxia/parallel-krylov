@@ -1,12 +1,13 @@
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
 from .common import start, finish, init
 
 
-def adaptivekskipmrr(A, b, epsilon, k, T):
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+def adaptivekskipmrr(A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
 
     # 初期化
     Ar = np.zeros((k+3, N), T)
@@ -39,7 +40,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     index = 1
 
     # 反復計算
-    while i < max_iter:
+    while i < maxiter:
         residual[index] = norm(Ar[0]) / b_norm
         # 残差減少判定
         if residual[index] > pre_residual:
@@ -69,7 +70,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
             pre_x = x.copy()
 
         # 収束判定
-        if residual[index] < epsilon:
+        if residual[index] < tol:
             isConverged = True
             break
 
