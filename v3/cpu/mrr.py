@@ -1,5 +1,4 @@
-from numpy import float64
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
 from .common import start, finish, init
