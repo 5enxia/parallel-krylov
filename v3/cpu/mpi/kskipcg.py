@@ -1,18 +1,22 @@
+from threading import local
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, init_mpi
+from .common import start, finish, init, MultiCpu
 
 
-def kskipcg(A, b, epsilon, k, T):
-    comm, rank, num_of_process = init_mpi()
+def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
+    MultiCpu.joint_mpi(comm)
 
-    # 共通初期化
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
+    # 初期化
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
+        b, x, maxiter)
+    MultiCpu.alloc(local_A, T)
     Ax = np.zeros(N, T)
-
-    # root
     Ar = np.zeros((k + 2, N), T)
     Ap = np.zeros((k + 3, N), T)
     a = np.zeros(2*k + 2, T)
@@ -20,7 +24,7 @@ def kskipcg(A, b, epsilon, k, T):
     c = np.zeros(2*k + 2, T)
 
     # 初期残差
-    comm.Allgather(local_A.dot(x), Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     Ap[0] = Ar[0].copy()
 
@@ -29,18 +33,18 @@ def kskipcg(A, b, epsilon, k, T):
     index = 0
     if rank == 0:
         start_time = start(method_name='k-skip CG + MPI', k=k)
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
-        if residual[index] < epsilon:
+        if residual[index] < tol:
             isConverged = True
             break
 
         # 基底計算
         for j in range(1, k + 1):
-            comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
-            comm.Allgather(local_A.dot(Ap[j-1]), Ap[j])
-        comm.Allgather(local_A.dot(Ap[k]), Ap[k+1])
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
+        for j in range(1, k + 2):
+            MultiCpu.dot(local_A, Ap[j-1], out=Ap[j])
 
         # 係数計算
         for j in range(2 * k + 1):
@@ -60,7 +64,7 @@ def kskipcg(A, b, epsilon, k, T):
         x += alpha * Ap[0]
         Ar[0] -= alpha * Ap[1]
         Ap[0] = Ar[0] + beta * Ap[0]
-        comm.Allgather(local_A.dot(Ap[0]), Ap[1])
+        MultiCpu.dot(local_A, Ap[0], out=Ap[1])
 
         # CGでのk反復
         for j in range(k):
@@ -76,7 +80,7 @@ def kskipcg(A, b, epsilon, k, T):
             x += alpha * Ap[0]
             Ar[0] -= alpha * Ap[1]
             Ap[0] = Ar[0] + beta * Ap[0]
-            comm.Allgather(local_A.dot(Ap[0]), Ap[1])
+            MultiCpu.dot(local_A, Ap[0], out=Ap[1])
 
         i += (k + 1)
         index += 1
