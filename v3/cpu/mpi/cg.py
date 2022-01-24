@@ -1,22 +1,23 @@
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, init_mpi
+from .common import start, finish, init, MultiCpu
 
-def cg(A, b, epsilon, T):
+def cg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
-    comm, rank, num_of_process = init_mpi()
-
-    # 共通初期化
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
+    rank = comm.Get_rank()
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
+    MultiCpu.alloc(local_A, T)
     Ax = np.zeros(N, T)
     v = np.zeros(N, T)
 
     # 初期残差
-    comm.Allgather(local_A.dot(x), Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     r = b - Ax
     p = r.copy()
     gamma = dot(r, r)
@@ -26,15 +27,15 @@ def cg(A, b, epsilon, T):
 
     if rank == 0:
         start_time = start(method_name='CG + MPI')
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        if residual[i] < epsilon:
+        if residual[i] < tol:
             isConverged = True 
             break
 
         # 解の更新
-        comm.Allgather(local_A.dot(p), v)
+        MultiCpu.dot(local_A, p, out=v)
         sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p
