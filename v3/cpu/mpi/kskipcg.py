@@ -1,4 +1,3 @@
-from threading import local
 import numpy as np
 from numpy import float64, dot
 from numpy.linalg import norm
