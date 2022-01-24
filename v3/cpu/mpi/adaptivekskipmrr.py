@@ -1,17 +1,21 @@
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, init_mpi
+from .common import start, finish, init, MultiCpu
 
 
-def adaptivekskipmrr(A, b, epsilon, k, T):
-    # 共通初期化
-    comm, rank, num_of_process = init_mpi()
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process)
-    Ax = np.zeros(N, T)
+def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
+        b, x, maxiter)
+    MultiCpu.alloc(local_A, T)
+    Ax = np.zeros(N, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
     rAr = np.zeros(1, T)
@@ -21,11 +25,11 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     delta = np.zeros(2*k + 1, T)
 
     # kの履歴
-    k_history = np.zeros(max_iter+1, np.int)
+    k_history = np.zeros(maxiter+1, np.int)
     k_history[0] = k
 
     # 初期残差
-    comm.Allgather(local_A.dot(x), Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -36,7 +40,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     # 初期反復
     if rank == 0:
         start_time = start(method_name='Adaptive k-skip MrR + MPI', k=k)
-    comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+    MultiCpu.dot(local_A, Ar[0], out=Ar[1])
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
 
@@ -52,7 +56,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
     k_history[1] = k
 
     # 反復計算
-    while i < max_iter:
+    while i < maxiter:
         pre_residual = cur_residual
         cur_residual = norm(Ar[0]) / b_norm
         residual[index] = cur_residual
@@ -62,8 +66,8 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
             # 解と残差を再計算
             x = pre_x.copy()
 
-            comm.Allgather(local_A.dot(x), Ax)
-            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+            MultiCpu.dot(local_A, x, out=Ax)
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             rAr = dot(Ar[0], Ar[1])
             ArAr = dot(Ar[1], Ar[1])
 
@@ -86,15 +90,15 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
             pre_x = x.copy()
 
         # 収束判定
-        isConverged = cur_residual < epsilon
-        if isConverged:
+        if cur_residual < tol:
+            isConverged = True
             break
 
         # 基底計算
+        for j in range(1, k + 2):
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 1):
-            comm.Allgather(local_A.dot(Ar[j-1]), Ar[j])
-            comm.Allgather(local_A.dot(Ay[j-1]), Ay[j])
-        comm.Allgather(local_A.dot(Ar[k]), Ar[k+1])
+            MultiCpu.dot(local_A, Ay[j-1], out=Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -114,6 +118,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
+        MultiCpu.dot(local_A, Ar[0], out=Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -136,7 +141,7 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            comm.Allgather(local_A.dot(Ar[0]), Ar[1])
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
@@ -150,10 +155,8 @@ def adaptivekskipmrr(A, b, epsilon, k, T):
         isConverged = False
         residual[index] = norm(Ar[0]) / b_norm
 
-    num_of_iter = i
     if rank == 0:
-        elapsed_time = finish(start_time, isConverged,
-                              num_of_iter, residual[index], k)
+        elapsed_time = finish(start_time, isConverged, i, residual[index], k)
         return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
     else:
         exit(0)
