@@ -1,12 +1,14 @@
 import numpy as np
-from numpy import dot
+from numpy import float64, dot
 from numpy.linalg import norm
 
 from .common import start, finish, init
 
 
-def kskipcg(A, b, epsilon, k, T):
-    x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T)
+def kskipcg(A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    # 初期化
+    T = float64
+    x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
 
     # 初期化
     Ar = np.zeros((k + 2, N), T)
@@ -23,10 +25,10 @@ def kskipcg(A, b, epsilon, k, T):
     i = 0
     index = 0
     start_time = start(method_name='k-skip CG', k=k)
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
-        if residual[index] < epsilon:
+        if residual[index] < tol:
             isConverged = True
             break
 
