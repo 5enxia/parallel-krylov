@@ -1,27 +1,26 @@
 import argparse
 import numpy as np
-import os
+from scipy.sparse import save_npz, bsr_matrix, csc_matrix, csr_matrix, coo_matrix, dia_matrix, dok_matrix, lil_matrix
 
-from scipy.sparse import csr_matrix, save_npz, load_npz
+methods = {
+    "bsr": bsr_matrix,
+    "csc": csc_matrix,
+    "csr": csr_matrix,
+    "coo": coo_matrix,
+    "dia": dia_matrix,
+    "dok": dok_matrix,
+    "lil": lil_matrix,
+}
 
-# help
 parser = argparse.ArgumentParser(description='.npy to .npz(csr) converter')
 parser.add_argument("path", help="data file path")
+parser.add_argument("-f", "--format", default="coo",
+                    help="Matrix Storage Format")
 
-# parse argv
 args = parser.parse_args()
-path, basename = os.path.split(args.path)
-filename, ext = os.path.splitext(basename)
 
-# load npy
 npy = np.load(args.path)
+method = methods[args.format]
+npz = method(npy)
 
-# compress
-csr = csr_matrix(npy)
-
-# save
-save_npz(f'{path}/{filename}.npz', csr)
-
-# test
-# a = load_npz(f'{path}/{filename}.npz')
-# print(a)
+save_npz(args.path.replace('.npy', '.npz'), npz)

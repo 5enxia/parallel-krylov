@@ -1,28 +1,16 @@
 import argparse
-import numpy as np
+from numpy import load as load_npy
 import os
 
-from scipy.sparse import csr_matrix
-from scipy.io import mmwrite, mmread 
+from scipy.io import mmwrite
+from scipy.sparse import coo_matrix
 
-# help
-parser = argparse.ArgumentParser(description='.npy to .mtx(csr) converter')
+parser = argparse.ArgumentParser(description='.npy to .npz converter')
 parser.add_argument("path", help="data file path")
 
-# parse argv
 args = parser.parse_args()
-path, basename = os.path.split(args.path)
-filename, ext = os.path.splitext(basename)
 
-# load npy
-npy = np.load(args.path)
+npy = load_npy(args.path)
+coo = coo_matrix(npy)
 
-# compress
-csr = csr_matrix(npy)
-
-# save
-mmwrite(f'{path}/{filename}.mtx', csr)
-
-# test
-# a = mmread(f'{path}/{filename}.mtx')
-# print(a)
+mmwrite(args.path. csr)
