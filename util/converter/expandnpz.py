@@ -1,5 +1,4 @@
 import argparse
-from scipy.io import mmwrite
 from scipy.sparse import bsr_matrix, csc_matrix, csr_matrix, coo_matrix, dia_matrix, dok_matrix, lil_matrix
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse import vstack, hstack
@@ -16,25 +15,22 @@ methods = {
 
 parser = argparse.ArgumentParser(description='divide .npz to n files')
 parser.add_argument("path", help="data file path")
-parser.add_argument("n", help="number of processes")
 parser.add_argument("format", help="Matrix Storage Format")
-
+parser.add_argument("n", help="number of processes")
 args = parser.parse_args()
-np = int(args.n)
+
 npz = load_npz(args.path)
 method = methods[args.format]
+np = int(args.n)
 
 old_dim = npz.shape[0]
 num_of_appends = np - (old_dim % np)
 num_of_appends = 0 if num_of_appends == np else num_of_appends
 new_n = old_dim + num_of_appends
+print(f'Expand: {npz.shape} -> ({new_n}, {new_n})')
 
-print('Expanding...')
 npz = hstack([npz, method((old_dim, num_of_appends))], args.format)
 npz = vstack([npz, method((num_of_appends, new_n))], args.format)
-print('Done')
 
-print('Saving...')
-path = args.path.replace('.npz', f'.{np:02d}.npz')
-save_npz(path, npz)
-print(f'Saved {path}')
+save_npz(args.path.replace('.npz', f'.{np:02d}.npz'), npz)
+print('Done')
