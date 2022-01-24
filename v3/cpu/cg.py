@@ -1,4 +1,3 @@
-from matplotlib.cbook import maxdict
 from numpy import float64
 from numpy import dot
 from numpy.linalg import norm
