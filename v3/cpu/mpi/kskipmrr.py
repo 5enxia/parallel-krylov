@@ -2,20 +2,20 @@ import numpy as np
 from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, MultiProc
+from .common import start, finish, init, MultiCpu
 
 
 def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
     rank = comm.Get_rank()
-    MultiProc.joint_mpi(comm)
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
     T = float64
     x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
         b, x, maxiter)
     Ax = np.zeros(N, T)
-    MultiProc.alloc(local_A, T)
+    MultiCpu.alloc(local_A, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
     rAr = np.zeros(1, T)
@@ -25,7 +25,7 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
     delta = np.zeros(2*k + 1, T)
 
     # 初期残差
-    MultiProc.dot(local_A, x, out=Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -33,7 +33,7 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
     if rank == 0:
         start_time = start(method_name='k-skip MrR + MPI', k=k)
 
-    MultiProc.dot(local_A, Ar[0], out=Ar[1])
+    MultiCpu.dot(local_A, Ar[0], out=Ar[1])
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
 
@@ -57,9 +57,9 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
 
         # 基底計算
         for j in range(1, k + 2):
-            MultiProc.dot(local_A, Ar[j-1], out=Ar[j])
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 1):
-            MultiProc.dot(local_A, Ay[j-1], out=Ay[j])
+            MultiCpu.dot(local_A, Ay[j-1], out=Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -79,7 +79,7 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        MultiProc.dot(local_A, Ar[0], out=Ar[1])
+        MultiCpu.dot(local_A, Ar[0], out=Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -104,7 +104,7 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
-            MultiProc.dot(local_A, Ar[0], out=Ar[1])
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             x -= z
 
         i += (k + 1)

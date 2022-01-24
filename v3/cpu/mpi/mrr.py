@@ -2,19 +2,19 @@ import numpy as np
 from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, MultiProc
+from .common import start, finish, init, MultiCpu
 
 
 def mrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
     rank = comm.Get_rank()
-    MultiProc.joint_mpi(comm)
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
     T = float64
     x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
         b, x, maxiter)
-    MultiProc.alloc(local_A, T)
+    MultiCpu.alloc(local_A, T)
     Ax = np.zeros(N, T)
     Ar = np.zeros(N, T)
     s = np.zeros(N, T)
@@ -24,14 +24,14 @@ def mrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None
     mu = np.zeros(1, T)
 
     # 初期残差
-    MultiProc.dot(local_A, x, out=Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     r = b - Ax
     residual[0] = norm(r) / b_norm
 
     # 初期反復
     if rank == 0:
         start_time = start(method_name='MrR + MPI')
-    MultiProc.dot(local_A, r, out=Ar)
+    MultiCpu.dot(local_A, r, out=Ar)
     rs = dot(r, Ar)
     ss = dot(Ar, Ar)
     zeta = rs / ss
@@ -52,7 +52,7 @@ def mrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None
             break
 
         # 解の更新
-        MultiProc.dot(local_A, r, out=Ar)
+        MultiCpu.dot(local_A, r, out=Ar)
         nu = dot(y, Ar)
         mu = dot(y, y)
         gamma = nu / mu

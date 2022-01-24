@@ -18,7 +18,7 @@ def finish(start_time, isConverged, num_of_iter, final_residual, final_k=None):
     return elapsed_time
 
 
-class MultiProc(object):
+class MultiCpu(object):
     # mpi
     comm = None
     # dim

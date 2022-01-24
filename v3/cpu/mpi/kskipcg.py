@@ -2,19 +2,19 @@ import numpy as np
 from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, MultiProc
+from .common import start, finish, init, MultiCpu
 
 
 def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
     rank = comm.Get_rank()
-    MultiProc.joint_mpi(comm)
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
     T = float64
     x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
         b, x, maxiter)
-    MultiProc.alloc(local_A, T)
+    MultiCpu.alloc(local_A, T)
     Ax = np.zeros(N, T)
     Ar = np.zeros((k + 2, N), T)
     Ap = np.zeros((k + 3, N), T)
@@ -23,7 +23,7 @@ def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, call
     c = np.zeros(2*k + 2, T)
 
     # 初期残差
-    MultiProc.dot(local_A, x, out=Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     Ap[0] = Ar[0].copy()
 
@@ -41,9 +41,9 @@ def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, call
 
         # 基底計算
         for j in range(1, k + 1):
-            MultiProc.dot(local_A, Ar[j-1], out=Ar[j])
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 2):
-            MultiProc.dot(local_A, Ap[j-1], out=Ap[j])
+            MultiCpu.dot(local_A, Ap[j-1], out=Ap[j])
 
         # 係数計算
         for j in range(2 * k + 1):
@@ -63,7 +63,7 @@ def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, call
         x += alpha * Ap[0]
         Ar[0] -= alpha * Ap[1]
         Ap[0] = Ar[0] + beta * Ap[0]
-        MultiProc.dot(local_A, Ap[0], out=Ap[1])
+        MultiCpu.dot(local_A, Ap[0], out=Ap[1])
 
         # CGでのk反復
         for j in range(k):
@@ -79,7 +79,7 @@ def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, call
             x += alpha * Ap[0]
             Ar[0] -= alpha * Ap[1]
             Ap[0] = Ar[0] + beta * Ap[0]
-            MultiProc.dot(local_A, Ap[0], out=Ap[1])
+            MultiCpu.dot(local_A, Ap[0], out=Ap[1])
 
         i += (k + 1)
         index += 1

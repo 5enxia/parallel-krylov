@@ -2,19 +2,19 @@ import numpy as np
 from numpy import float64, dot
 from numpy.linalg import norm
 
-from .common import start, finish, init, MultiProc
+from .common import start, finish, init, MultiCpu
 
 
 def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
     rank = comm.Get_rank()
-    MultiProc.joint_mpi(comm)
+    MultiCpu.joint_mpi(comm)
 
     # 初期化
     T = float64
     x, maxiter, b_norm, N, residual, num_of_solution_updates = init(
         b, x, maxiter)
-    MultiProc.alloc(local_A, T)
+    MultiCpu.alloc(local_A, T)
     Ax = np.zeros(N, T)
     Ar = np.zeros((k + 2, N), T)
     Ay = np.zeros((k + 1, N), T)
@@ -29,7 +29,7 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
     k_history[0] = k
 
     # 初期残差
-    MultiProc.dot(local_A, x, out=Ax)
+    MultiCpu.dot(local_A, x, out=Ax)
     Ar[0] = b - Ax
     residual[0] = norm(Ar[0]) / b_norm
 
@@ -40,7 +40,7 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
     # 初期反復
     if rank == 0:
         start_time = start(method_name='Adaptive k-skip MrR + MPI', k=k)
-    MultiProc.dot(local_A, Ar[0], out=Ar[1])
+    MultiCpu.dot(local_A, Ar[0], out=Ar[1])
     rAr = dot(Ar[0], Ar[1])
     ArAr = dot(Ar[1], Ar[1])
 
@@ -66,8 +66,8 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
             # 解と残差を再計算
             x = pre_x.copy()
 
-            MultiProc.dot(local_A, x, out=Ax)
-            MultiProc.dot(local_A, Ar[0], out=Ar[1])
+            MultiCpu.dot(local_A, x, out=Ax)
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             rAr = dot(Ar[0], Ar[1])
             ArAr = dot(Ar[1], Ar[1])
 
@@ -96,9 +96,9 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
 
         # 基底計算
         for j in range(1, k + 2):
-            MultiProc.dot(local_A, Ar[j-1], out=Ar[j])
+            MultiCpu.dot(local_A, Ar[j-1], out=Ar[j])
         for j in range(1, k + 1):
-            MultiProc.dot(local_A, Ay[j-1], out=Ay[j])
+            MultiCpu.dot(local_A, Ay[j-1], out=Ay[j])
 
         # 係数計算
         for j in range(2 * k + 3):
@@ -118,7 +118,7 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
         Ay[0] = eta * Ay[0] + zeta * Ar[1]
         z = eta * z - zeta * Ar[0]
         Ar[0] -= Ay[0]
-        MultiProc.dot(local_A, Ar[0], out=Ar[1])
+        MultiCpu.dot(local_A, Ar[0], out=Ar[1])
         x -= z
 
         # MrRでのk反復
@@ -141,7 +141,7 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
             d = alpha[2] * delta[0] - beta[1] ** 2
             zeta = alpha[1] * delta[0] / d
             eta = -alpha[1] * beta[1] / d
-            MultiProc.dot(local_A, Ar[0], out=Ar[1])
+            MultiCpu.dot(local_A, Ar[0], out=Ar[1])
             Ay[0] = eta * Ay[0] + zeta * Ar[1]
             z = eta * z - zeta * Ar[0]
             Ar[0] -= Ay[0]
