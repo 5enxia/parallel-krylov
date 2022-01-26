@@ -1,30 +1,28 @@
+from numpy import float64
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 from mpi4py import MPI
 
-from .common import start, finish, init, MultiGpu, init_mpi, calc_alloc_gpu
+from .common import start, finish, init, MultiGpu
 
 
-def cg(A, b, epsilon, T):
-    # MPI
-    # rank 0-7
-    # num_of_process = 8
-    comm, rank, num_of_process = init_mpi()
-
-    # GPU初期化
-    begin, end = calc_alloc_gpu(rank, num_of_process)
-    MultiGpu.init_gpu(begin, end, num_of_process)
+def cg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
+    MultiGpu.joint_mpi(comm)
 
     # 初期化
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
-
+    T = float64
+    ## GPU初期化
+    MultiGpu.init()
+    b, x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
     MultiGpu.alloc(local_A, b, T)
     Ax = cp.zeros(N, T)
     v = cp.zeros(N, T)
 
     # 初期残差
-    comm.Allgather(MultiGpu.dot(local_A, x), Ax)
+    MultiGpu.dot(local_A, x, out=Ax)
     r = b - Ax
     p = r.copy()
     gamma = dot(r, r)
@@ -33,17 +31,17 @@ def cg(A, b, epsilon, T):
     i = 0
 
     if rank == 0:
-        start_time = start(method_name='cg + gpu + mpi')
+        start_time = start(method_name='CG + GPU + MPI')
 
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        if residual[i] < epsilon:
+        if residual[i] < tol:
             isConverged = True
             break
 
         # 解の更新
-        comm.Allgather(MultiGpu.dot(local_A, p), v)
+        MultiGpu.dot(local_A, p, out=v)
         sigma = dot(p, v)
         alpha = gamma / sigma
         x += alpha * p
