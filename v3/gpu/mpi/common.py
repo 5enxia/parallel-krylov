@@ -1,10 +1,11 @@
-import time
-
+import os
 import numpy as np
 import scipy
 import cupy as cp
 from cupy.cuda import Device
 from mpi4py import MPI
+
+# import socket
 
 from ..common import _start, _finish
 
@@ -23,47 +24,22 @@ def finish(start_time, isConverged, num_of_iter, final_residual, final_k=None):
 
 
 # パラメータの初期化
-def init(A, b, T, rank, num_of_process, num_of_all_of_gpu = 16) -> tuple:
-    # 追加する要素数を算出
-    old_N = b.size
-    num_of_append = num_of_all_of_gpu - (old_N % num_of_all_of_gpu) # 足りない行を計算
-    num_of_append = 0 if num_of_append == num_of_all_of_gpu else num_of_append
-    N = old_N + num_of_append
-    local_N = N // num_of_process
-    begin, end = rank * local_N, (rank+1) * local_N
-
-    ## A
-    if num_of_append:
-        # データをパディングする
-        if isinstance(A, np.ndarray):
-            if num_of_append:
-                A = np.append(A, np.zeros((old_N, num_of_append)), axis=1)  # 右に0を追加
-                A = np.append(A, np.zeros((num_of_append, N)), axis=0)  # 下に0を追加
-        elif isinstance(A, scipy.sparse.csr.csr_matrix):
-            from scipy.sparse import hstack, vstack, csr_matrix
-            if num_of_append:
-                A = hstack([A, csr_matrix((old_N, num_of_append))], 'csr') # 右にemptyを追加
-                A = vstack([A, csr_matrix((num_of_append, N))], 'csr') # 下にemptyを追加
-    local_A = A[begin:end]
-
-    ## b
-    if num_of_append:
-        b = np.append(b, np.zeros(num_of_append))  # 0を追加
-    b = cp.array(b, T)
+def init(b, x=None, maxiter=None) -> tuple:
+    T = np.float64
+    b = cp.array(b)
     b_norm = cp.linalg.norm(b)
+    N = b.size
+    if isinstance(x, np.ndarray):
+        x = cp.array(x)
+    else:
+        x = cp.zeros(N, dtype=T)
 
-    # x
-    x = cp.zeros(N, T)
+    if maxiter == None:
+        maxiter = N
+    residual = cp.zeros(maxiter+1, T)
+    num_of_solution_updates = cp.zeros(maxiter+1, np.int)
 
-    # その他パラメータ
-    # max_iter = old_N * 2
-    max_iter = old_N
-    # max_iter = 1000
-    residual = cp.zeros(max_iter+16, T)
-    num_of_solution_updates = cp.zeros(max_iter+16, np.int)
-    num_of_solution_updates[0] = 0
-
-    return local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates
+    return b, x, maxiter, b_norm, N, residual, num_of_solution_updates
 
 
 class MultiGpu(object):
@@ -93,11 +69,15 @@ class MultiGpu(object):
 
     # GPUの初期化
     @classmethod
-    def init_gpu(cls, begin: int, end: int, num_of_process: int):
-        cls.begin = begin
-        cls.end = end
-        cls.num_of_gpu = end - begin + 1
-        cls.num_of_process = num_of_process
+    def init(cls):
+        # ip = socket.gethostbyname(socket.gethostname())
+        # rank = os.environ['MV2_COMM_WORLD_RANK']
+        # local_rank = os.environ['MV2_COMM_WORLD_LOCAL_RANK']
+        ids = os.environ['GPU_IDS'].split(',')
+        print(f'rank: {rank}, local_lank: {local_rank}. gpu_ids: {ids}')
+        cls.begin = int(ids[0])
+        cls.end = int(ids[-1])
+        cls.num_of_gpu = cls.end - cls.begin + 1
         cls.streams = [None] * cls.num_of_gpu
 
         # init memory allocator
@@ -105,7 +85,7 @@ class MultiGpu(object):
             Device(i).use()
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
-            cls.streams[i-begin] = cp.cuda.Stream(non_blocking=False)
+            cls.streams[i-cls.begin] = cp.cuda.Stream(non_blocking=False)
         
             # Enable P2P
             for j in range(4):
@@ -152,12 +132,10 @@ class MultiGpu(object):
     # マルチGPUを用いた行列ベクトル積
     @classmethod
     def dot(cls, local_A, x, out):
-        # cls.comm.Bcast(x)
         # Copy vector data to All devices
         for i in range(cls.begin, cls.end+1):
             Device(i).use()
             index = i-cls.begin
-            # cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes)
             cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[index].ptr)
             # dot
             cls.y[index] = cls.A[index].dot(cls.x[index])
@@ -165,14 +143,12 @@ class MultiGpu(object):
         for i in range(cls.begin, cls.end+1):
             Device(i).synchronize()
             index = i-cls.begin
-            # cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes)
-            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes, cls.streams[index].ptr)
+            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.local_local_nbytes, cls.streams[index].ptr)
 
         # sync
         for i in range(cls.begin, cls.end+1):
             index = i-cls.begin
             cls.streams[index].synchronize()
-            # Device(i).synchronize()
 
         cls.comm.Allgather(cls.out, out)
         # return
@@ -182,35 +158,4 @@ class MultiGpu(object):
     @classmethod
     def joint_mpi(cls, comm):
         cls.comm = comm
-
-    @classmethod
-    def sync(cls):
-        Device(cls.end).synchronize()
-        cls.comm.Barrier()
-
-
-# mpi
-def init_mpi():
-    comm = MPI.COMM_WORLD
-    return comm, comm.Get_rank(), comm.Get_size()
-
-
-# gpu
-def calc_alloc_gpu(rank: int, num_of_process: int) -> tuple:
-    # local
-    if num_of_process == 2:
-        return rank, rank
-    # ito
-    elif num_of_process == 4:
-        return 0, 3
-    elif num_of_process == 8:
-        # odd
-        if rank % 2 == 0:
-            return 2, 3
-        else:
-            return 0, 1
-    elif num_of_process == 16:
-        _id = 3 - rank % 4
-        return _id, _id 
-    else:
-        return 0, 0
+        cls.num_of_process = comm.Get_size()

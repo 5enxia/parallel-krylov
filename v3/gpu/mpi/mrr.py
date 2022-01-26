@@ -1,24 +1,22 @@
+from numpy import float64
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
 from mpi4py import MPI
 
-from .common import start, finish, init, MultiGpu, init_mpi, calc_alloc_gpu
+from .common import start, finish, init, MultiGpu
 
 
-def mrr(A, b, epsilon, T):
-    # MPI
-    # rank 0-7
-    # num_of_process = 8
-    comm, rank, num_of_process = init_mpi()
-
-    # GPU初期化
-    begin, end = calc_alloc_gpu(rank, num_of_process)
+def mrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
     MultiGpu.joint_mpi(comm)
 
     # 初期化
-    MultiGpu.init_gpu(begin, end, num_of_process)
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
+    T = float64
+    ## GPU初期化
+    MultiGpu.init()
+    b, x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
     MultiGpu.alloc(local_A, b, T)
 
     Ax = cp.zeros(N, T)
@@ -32,7 +30,7 @@ def mrr(A, b, epsilon, T):
     # 初期反復
     i = 0
     if rank == 0:
-        start_time = start(method_name='MrR + gpu + mpi')
+        start_time = start(method_name='MrR + GPU + MPI')
     MultiGpu.dot(local_A, r, out=Ar)
     zeta = dot(r, Ar) / dot(Ar, Ar)
     y = zeta * Ar
@@ -43,10 +41,10 @@ def mrr(A, b, epsilon, T):
     i += 1
 
     # 反復計算
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[i] = norm(r) / b_norm
-        if residual[i] < epsilon:
+        if residual[i] < tol:
             isConverged = True
             break
 
@@ -68,6 +66,7 @@ def mrr(A, b, epsilon, T):
         num_of_solution_updates[i] = i
     else:
         isConverged = False
+        residual[i] = norm(r) / b_norm
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[i])

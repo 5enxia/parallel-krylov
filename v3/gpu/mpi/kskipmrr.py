@@ -1,23 +1,22 @@
+from numpy import float64
 import cupy as cp
 from cupy import dot
 from cupy.linalg import norm
+from mpi4py import MPI
 
-from .common import start, finish, init, MultiGpu, init_mpi, calc_alloc_gpu
+from .common import start, finish, init, MultiGpu
 
 
-def kskipmrr(A, b, epsilon, k, T):
-    # MPI
-    # rank 0-7
-    # num_of_process = 8
-    comm, rank, num_of_process = init_mpi()
-
-    # GPU初期化
-    begin, end = calc_alloc_gpu(rank, num_of_process)
-    MultiGpu.init_gpu(begin, end, num_of_process)
+def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+    # MPI初期化
+    rank = comm.Get_rank()
     MultiGpu.joint_mpi(comm)
 
     # 初期化
-    local_A, b, x, b_norm, N, max_iter, residual, num_of_solution_updates = init(A, b, T, rank, num_of_process, 16)
+    T = float64
+    ## GPU初期化
+    MultiGpu.init()
+    b, x, maxiter, b_norm, N, residual, num_of_solution_updates = init(b, x, maxiter)
     MultiGpu.alloc(local_A, b, T)
     Ax = cp.zeros(N, T)
     Ar = cp.zeros((k + 2, N), T)
@@ -45,10 +44,10 @@ def kskipmrr(A, b, epsilon, k, T):
     index = 1
 
     # 反復計算
-    while i < max_iter:
+    while i < maxiter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
-        if residual[index] < epsilon:
+        if residual[index] < tol:
             isConverged = True
             break
 
