@@ -48,6 +48,7 @@ def cg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None,
         num_of_solution_updates[i] = i
     else:
         isConverged = False
+        residual[i] = norm(r) / b_norm
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[i])

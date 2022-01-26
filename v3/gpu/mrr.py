@@ -54,6 +54,7 @@ def mrr(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None)
         num_of_solution_updates[i] = i
     else:
         isConverged = False
+        residual[i] = norm(r) / b_norm
 
     elapsed_time = finish(start_time, isConverged, i, residual[i])
     return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
