@@ -7,7 +7,7 @@ from mpi4py import MPI
 from .common import start, finish, init, MultiGpu
 
 
-def adapivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
+def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callback=None, atol=None) -> tuple:
     # MPI初期化
     rank = comm.Get_rank()
     MultiGpu.joint_mpi(comm)
@@ -149,6 +149,12 @@ def adapivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=No
     num_of_iter = i
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, num_of_iter, residual[index], k)
-        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1].get()
+        info = {
+            'time': elapsed_time,
+            'nosl': num_of_solution_updates[:index+1],
+            'residual': residual[:index+1],
+            'khistory': k_history[:index+1]
+        }
+        return x, info
     else:
         exit(0)
