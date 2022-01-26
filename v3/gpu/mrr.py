@@ -5,7 +5,7 @@ from cupy.linalg import norm
 from .common import start, finish, init, MultiGpu
 
 
-def cg(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
+def mrr(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) -> tuple:
     # 初期化
     T = float64
     MultiGpu.init()
@@ -14,12 +14,21 @@ def cg(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) 
 
     # 初期残差
     r = b - MultiGpu.dot(A, x)
-    p = r.copy()
-    gamma = dot(r, r)
+    residual[0] = norm(r) / b_norm
+
+    # 初期反復
+    i = 0
+    start_time = start(method_name='MrR + GPU')
+    Ar = MultiGpu.dot(A, r)
+    zeta = dot(r, Ar) / dot(Ar, Ar)
+    y = zeta * Ar
+    z = -zeta * r
+    r -= y
+    x -= z
+    num_of_solution_updates[1] = 1
+    i += 1
 
     # 反復計算
-    i = 0
-    start_time = start(method_name='CG + GPU')
     while i < maxiter:
         # 収束判定
         residual[i] = norm(r) / b_norm
@@ -28,15 +37,19 @@ def cg(A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None, atol=None) 
             break
 
         # 解の更新
-        v = MultiGpu.dot(A, p)
-        sigma = dot(p, v)
-        alpha = gamma / sigma
-        x += alpha * p
-        r -= alpha * v
-        old_gamma = gamma.copy()
-        gamma = dot(r, r)
-        beta = gamma / old_gamma
-        p = r + beta * p
+        Ar = MultiGpu.dot(A, r)
+        mu = dot(y, y)
+        nu = dot(y, Ar)
+        gamma = nu / mu
+        s = Ar - gamma * y
+        rs = dot(r, s)
+        ss = dot(s, s)
+        zeta = rs / ss
+        eta = -zeta * gamma
+        y = eta * y + zeta * Ar
+        z = eta * z - zeta * r
+        r -= y
+        x -= z
         i += 1
         num_of_solution_updates[i] = i
     else:

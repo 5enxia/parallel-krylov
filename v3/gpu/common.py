@@ -1,10 +1,9 @@
 import time
 
 import numpy as np
-import scipy
 import cupy as cp
 from cupy.cuda import Device
-from cupy.cuda.runtime import getDeviceCount()
+from cupy.cuda.runtime import getDeviceCount
 
 from ..common import _start, _finish
 
@@ -25,7 +24,8 @@ def finish(start_time: float, isConverged: bool, num_of_iter: int, final_residua
 # パラメータの初期化
 def init(b, x=None, maxiter=None) -> tuple:
     T = np.float64
-    b_norm = np.linalg.norm(b)
+    b = cp.array(b)
+    b_norm = cp.linalg.norm(b)
     N = b.size
     if isinstance(x, np.ndarray):
         x = cp.array(x)
@@ -37,7 +37,7 @@ def init(b, x=None, maxiter=None) -> tuple:
     residual = cp.zeros(maxiter+1, T)
     num_of_solution_updates = cp.zeros(maxiter+1, np.int)
 
-    return x, maxiter, b_norm, N, residual, num_of_solution_updates
+    return b, x, maxiter, b_norm, N, residual, num_of_solution_updates
 
 
 class MultiGpu(object):
@@ -54,15 +54,14 @@ class MultiGpu(object):
     x: list = []
     y: list = []
     out: np.ndarray = None
-    # byte size
-    nbytes: int = 0
-    local_nbytes: int = 0
     # gpu stream
     streams = None
 
     # GPUの初期化
     @classmethod
     def init(cls):
+        cls.begin = 0
+        cls.end = getDeviceCount() - 1
         cls.num_of_gpu = getDeviceCount()
         cls.streams = [None] * cls.num_of_gpu
 
@@ -120,7 +119,7 @@ class MultiGpu(object):
             cls.y[i] = cls.A[i].dot(cls.x[i])
         for i in range(cls.num_of_gpu):
             # copy to master
-            cp.cuda.runtime.memcpyPeerAsync(cls.out[i*cls.local_N].data.ptr, cls.end, cls.y[i].data.ptr, i, cls.y[i].nbytes, cls.streams[i].ptr)
+            cp.cuda.runtime.memcpyPeerAsync(cls.out[i*cls.local_N].data.ptr, cls.end, cls.y[i].data.ptr, i, cls.local_nbytes, cls.streams[i].ptr)
         for i in range(cls.num_of_gpu):
             # sync
             cls.streams[i].synchronize()
