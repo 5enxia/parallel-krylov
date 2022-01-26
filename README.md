@@ -4,35 +4,39 @@ Krylov subspace methods module.
 Do not publish code before publishing paper.
 
 ## dir
-
-- archive
-  - origin
-  - thread
-- converter
-- cpp
-  - archive
-  - docs
-  - npy
-  - util
-- doc
-- method
-  - build
-  - cpp
-  - origin
-  - process
-    - pyx
-    - rewite
-  - threads
-- plot
-- test
-- util
-- x
+- v0
+- v1
+- v3
+  - cpu
+    - mpi
+      - cg
+      - mrr
+      - kskipcg
+      - kskipmrr
+      - adaptivekskipmrr
+    - cg
+    - mrr
+    - kskipcg
+    - kskipmrr
+    - adaptivekskipmrr
+  - gpu
+    - mpi
+      - cg
+      - mrr
+      - kskipcg
+      - kskipmrr
+      - adaptivekskipmrr
+    - cg
+    - mrr
+    - kskipcg
+    - kskipmrr
+    - adaptivekskipmrr
 
 ## requirements
 
 ### libs
 
-- openmpi
+- mvapich2
 - cuda(10.1)
 
 ### pip
