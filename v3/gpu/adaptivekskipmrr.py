@@ -138,4 +138,10 @@ def adaptivekskipmrr(A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, callbac
         residual[index] = norm(Ar[0]) / b_norm
 
     elapsed_time = finish(start_time, isConverged, i, residual[index], k)
-    return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1], k_history[:index+1]
+    info = {
+        'time': elapsed_time,
+        'nosl': num_of_solution_updates[:index+1],
+        'residual': residual[:index+1],
+        'khistory': k_history[:index+1],
+    }
+    return x, info
