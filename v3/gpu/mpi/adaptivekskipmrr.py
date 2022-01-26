@@ -146,9 +146,8 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
         isConverged = False
         residual[index] = norm(Ar[0]) / b_norm
 
-    num_of_iter = i
     if rank == 0:
-        elapsed_time = finish(start_time, isConverged, num_of_iter, residual[index], k)
+        elapsed_time = finish(start_time, isConverged, i, residual[index], k)
         info = {
             'time': elapsed_time,
             'nosl': num_of_solution_updates[:index+1],

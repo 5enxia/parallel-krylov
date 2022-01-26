@@ -111,6 +111,11 @@ def kskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, cal
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[index])
-        return elapsed_time, num_of_solution_updates[:index+1], residual[:index+1]
+        info = {
+            'time': elapsed_time,
+            'nosl': num_of_solution_updates[:index+1],
+            'residual': residual[:index+1],
+        }
+        return x, info
     else:
         exit(0)
