@@ -40,7 +40,7 @@ def adaptivekskipmrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=N
 
     # 初期反復
     if rank == 0:
-        start_time = start(method_name='adaptive k-skip MrR + gpu + mpi', k=k)
+        start_time = start(method_name='Adaptive k-skip MrR + GPU + MPI', k=k)
     MultiGpu.dot(local_A, Ar[0], out=Ar[1])
     zeta = dot(Ar[0], Ar[1]) / dot(Ar[1], Ar[1])
     Ay[0] = zeta * Ar[1]

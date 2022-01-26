@@ -34,7 +34,7 @@ def kskipcg(comm, local_A, b, x=None, tol=1e-05, maxiter=None, k=0, M=None, call
     i = 0
     index = 0
     if rank == 0:
-        start_time = start(method_name='k-skip CG + MPI', k=k)
+        start_time = start(method_name='k-skip CG + GPU + MPI', k=k)
     while i < maxiter:
         # 収束判定
         residual[index] = norm(Ar[0]) / b_norm
