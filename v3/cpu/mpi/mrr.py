@@ -73,6 +73,11 @@ def mrr(comm, local_A, b, x=None, tol=1e-05, maxiter=None, M=None, callback=None
 
     if rank == 0:
         elapsed_time = finish(start_time, isConverged, i, residual[i])
-        return elapsed_time, num_of_solution_updates[:i+1], residual[:i+1]
+        info = {
+            'time': elapsed_time,
+            'nosl': num_of_solution_updates[:i+1],
+            'residual': residual[:i+1],
+        }
+        return x, info
     else:
         exit(0)
