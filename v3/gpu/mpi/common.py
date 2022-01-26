@@ -74,7 +74,6 @@ class MultiGpu(object):
         # rank = os.environ['MV2_COMM_WORLD_RANK']
         # local_rank = os.environ['MV2_COMM_WORLD_LOCAL_RANK']
         ids = os.environ['GPU_IDS'].split(',')
-        print(f'rank: {rank}, local_lank: {local_rank}. gpu_ids: {ids}')
         cls.begin = int(ids[0])
         cls.end = int(ids[-1])
         cls.num_of_gpu = cls.end - cls.begin + 1
