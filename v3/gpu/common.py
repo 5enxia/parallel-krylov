@@ -111,16 +111,16 @@ class MultiGpu(object):
     # matvec with multi-gpu
     @classmethod
     def dot(cls, A, x):
+        # copy to workers
         for i in range(cls.num_of_gpu):
             Device(i).use()
-            # copy to workers
             cp.cuda.runtime.memcpyPeerAsync(cls.x[i].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[i].ptr)
             # dot
             cls.y[i] = cls.A[i].dot(cls.x[i])
+        # copy to master
         for i in range(cls.num_of_gpu):
-            # copy to master
             cp.cuda.runtime.memcpyPeerAsync(cls.out[i*cls.local_N].data.ptr, cls.end, cls.y[i].data.ptr, i, cls.local_nbytes, cls.streams[i].ptr)
+        # sync
         for i in range(cls.num_of_gpu):
-            # sync
             cls.streams[i].synchronize()
         return cls.out
