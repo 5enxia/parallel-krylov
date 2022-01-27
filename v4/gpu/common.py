@@ -5,6 +5,8 @@ import cupy as cp
 from cupy.cuda import Device
 from cupy.cuda.runtime import getDeviceCount
 
+from cupy.cuda import nccl
+
 from ..common import _start, _finish
 
 
@@ -56,6 +58,9 @@ class MultiGpu(object):
     out: np.ndarray = None
     # gpu stream
     streams = None
+    # nccl
+    comms = None
+    comm = None
 
     # GPUの初期化
     @classmethod
@@ -65,18 +70,24 @@ class MultiGpu(object):
         cls.num_of_gpu = getDeviceCount()
         cls.streams = [None] * cls.num_of_gpu
 
+        cls.comms = nccl.NcclCommunicator.initAll([0,1,2,3])
+        # cls.comms = nccl.NcclCommunicator.initAll([3,2,1,0])
+        # comm_id = nccl.get_unique_id()
+        # cls.comm = nccl.NcclCommunicator(cls.num_of_gpu, comm_id, 0)
+
         # init memory allocator
         for i in range(cls.num_of_gpu):
+        # for i in range(cls.end, -1, -1):
             Device(i).use()
             pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
             cp.cuda.set_allocator(pool.malloc)
             cls.streams[i] = cp.cuda.Stream()
 
             # Enable P2P
-            for j in range(cls.num_of_gpu):
-                if i == j:
-                    continue
-                cp.cuda.runtime.deviceEnablePeerAccess(j)
+            # for j in range(cls.num_of_gpu):
+            #     if i == j:
+            #         continue
+            #     cp.cuda.runtime.deviceEnablePeerAccess(j)
 
     # メモリー領域を確保
     @classmethod
@@ -95,6 +106,7 @@ class MultiGpu(object):
 
         # allocate A, x, y
         for i in range(cls.num_of_gpu):
+        # for i in range(cls.end, -1, -1):
             Device(i).use()
             # divide A
             if isinstance(A, np.ndarray):
@@ -111,16 +123,34 @@ class MultiGpu(object):
     # matvec with multi-gpu
     @classmethod
     def dot(cls, A, x):
+        # copy to workers
+        nccl.groupStart()
         for i in range(cls.num_of_gpu):
+        # for i in range(cls.end, -1, -1):
+            cls.comms[i].broadcast(x.data.ptr, cls.x[i].data.ptr, cls.N, nccl.NCCL_FLOAT64, cls.end, cls.streams[i].ptr)
+        nccl.groupEnd()
+
+        # dot
+        for i in range(cls.num_of_gpu):
+        # for i in range(cls.end, -1, -1):
             Device(i).use()
-            # copy to workers
-            cp.cuda.runtime.memcpyPeerAsync(cls.x[i].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[i].ptr)
-            # dot
             cls.y[i] = cls.A[i].dot(cls.x[i])
+
         for i in range(cls.num_of_gpu):
-            # copy to master
-            cp.cuda.runtime.memcpyPeerAsync(cls.out[i*cls.local_N].data.ptr, cls.end, cls.y[i].data.ptr, i, cls.local_nbytes, cls.streams[i].ptr)
-        for i in range(cls.num_of_gpu):
-            # sync
+            Device(i).synchronize()
             cls.streams[i].synchronize()
+
+        # copy to master
+        nccl.groupStart()
+        for i in range(cls.num_of_gpu):
+        # for i in range(cls.end, -1, -1):
+            # cls.comms[0].send(cls.y[i].data.ptr, cls.local_N, nccl.NCCL_FLOAT64, cls.end, cls.streams[i].ptr)
+            # cls.comms[0].recv(cls.out[i*cls.local_N].data.ptr, cls.local_N, nccl.NCCL_FLOAT64, i, cls.streams[i].ptr)
+            cp.cuda.runtime.memcpyPeerAsync(cls.out[i*cls.local_N].data.ptr, cls.end, cls.y[i].data.ptr, i, cls.local_nbytes, cls.streams[i].ptr)
+            # cls.comms[i].allGather(cls.y[i].data.ptr, cls.out[i*cls.local_N].data.ptr, cls.local_N, nccl.NCCL_FLOAT64, cls.streams[i].ptr)
+        nccl.groupEnd()
+
+        for i in range(cls.num_of_gpu):
+            cls.streams[i].synchronize()
+
         return cls.out
