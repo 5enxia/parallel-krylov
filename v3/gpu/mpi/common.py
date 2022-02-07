@@ -3,6 +3,7 @@ import numpy as np
 import scipy
 import cupy as cp
 from cupy.cuda import Device
+from cupy.cuda.runtime import getDeviceCount
 from mpi4py import MPI
 
 # import socket
@@ -73,9 +74,13 @@ class MultiGpu(object):
         # ip = socket.gethostbyname(socket.gethostname())
         # rank = os.environ['MV2_COMM_WORLD_RANK']
         # local_rank = os.environ['MV2_COMM_WORLD_LOCAL_RANK']
-        ids = os.environ['GPU_IDS'].split(',')
-        cls.begin = int(ids[0])
-        cls.end = int(ids[-1])
+        if os.environ.get('GPU_IDS') != None:
+            ids = os.environ['GPU_IDS'].split(',')
+            cls.begin = int(ids[0])
+            cls.end = int(ids[-1])
+        else:
+            cls.begin = 0
+            cls.end = getDeviceCount() - 1
         cls.num_of_gpu = cls.end - cls.begin + 1
         cls.streams = [None] * cls.num_of_gpu
 
