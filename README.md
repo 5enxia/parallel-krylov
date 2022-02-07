@@ -1,11 +1,15 @@
 # krylov
 
 Krylov subspace methods module.
-Do not publish code before publishing paper.
 
-## dir
-- v0
-- v1
+## Methods
+- CG
+- MrR
+- $k$-skip CG
+- $k$-skip MrR
+- Adaptive $k$-skip MrR
+
+## directories
 - v3
   - cpu
     - mpi
@@ -34,19 +38,44 @@ Do not publish code before publishing paper.
 
 ## requirements
 
-### libs
+### C libs
 
-- mvapich2
-- cuda(10.1)
+#### only CPU
+- C Compiler
+  - GCC
+  - Intel C Compiler
+  - etc...
+- BLAS library
+  - [OpenBLAS](https://www.openblas.net/)
+  - AppleBLAS
+  - etc..
 
-### pip
+#### with GPU
+- CUDA(10.1)
 
-- numpy
-- scipy
-- mpi4py
-- cupy(10.1)
+#### with MPI
+- MPI library
+  - OpenMPI(https://www.open-mpi.org/)
+  - MVAPICH2(http://mvapich.cse.ohio-state.edu/)
+  - Intel MPI
+  - etc...
 
-### only exec with cuda and mpiexec.hydra
+### Pyhton3 modules
+
+#### only CPU
+
+- [numpy](https://numpy.org/)
+- [scipy](https://scipy.org/)
+
+#### with GPU
+
+- [cupy9.6.0](https://github.com/cupy/cupy)
+
+#### with MPI
+
+- [mpi4py](https://github.com/mpi4py/mpi4py)
+
+#### only exec with cuda and mpiexec.hydra(Intel MPI)
 
 - fastrlock
 
@@ -60,7 +89,7 @@ Do not publish code before publishing paper.
 export PMIX_MCA_gds=hash
 ```
 
-### with cupy (wrapper for cuda with python)
+### with cupy
 
 #### expand mermory allocator limit
 
