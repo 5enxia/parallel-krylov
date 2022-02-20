@@ -5,9 +5,9 @@ Krylov subspace methods module.
 ## Methods
 - CG
 - MrR
-- $k$-skip CG
-- $k$-skip MrR
-- Adaptive $k$-skip MrR
+- *k*-skip CG
+- *k*-skip MrR
+- Adaptive *k*-skip MrR
 
 ## directories
 - v3
