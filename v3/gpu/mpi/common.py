@@ -138,22 +138,27 @@ class MultiGpu(object):
     def dot(cls, local_A, x, out):
         # Copy vector data to All devices
         for i in range(cls.begin, cls.end+1):
-            Device(i).use()
+            # Device(i).use()
             index = i-cls.begin
-            cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[index].ptr)
+            # cp.cuda.runtime.memcpyPeerAsync(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes, cls.streams[index].ptr)
+            cp.cuda.runtime.memcpyPeer(cls.x[index].data.ptr, i, x.data.ptr, cls.end, cls.nbytes)
             # dot
+        for i in range(cls.begin, cls.end+1):
+            index = i-cls.begin
+            Device(i).use()
+            # cls.streams[index].synchronize()
             cls.y[index] = cls.A[index].dot(cls.x[index])
         # Gather caculated element from All devices
         for i in range(cls.begin, cls.end+1):
-            # Device(i).synchronize()
+            Device(i).synchronize()
             index = i-cls.begin
-            # print(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.local_local_nbytes, cls.streams[index].ptr)
-            cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes, cls.streams[index].ptr)
+            # cp.cuda.runtime.memcpyPeerAsync(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.local_local_nbytes, cls.streams[index].ptr)
+            cp.cuda.runtime.memcpyPeer(cls.out[index*cls.local_local_N].data.ptr, cls.end, cls.y[index].data.ptr, i, cls.y[index].nbytes)
 
-        # sync
-        for i in range(cls.begin, cls.end+1):
-            index = i-cls.begin
-            cls.streams[index].synchronize()
+        # # sync
+        # for i in range(cls.begin, cls.end+1):
+        #     index = i-cls.begin
+        #     cls.streams[index].synchronize()
 
         cls.comm.Allgather(cls.out, out)
         # return
