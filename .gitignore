@@ -21,3 +21,4 @@ x/build
 *.sh.o*
 *.so
 *.out
+.vscode/
